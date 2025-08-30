@@ -38,7 +38,7 @@
           <div class="rb-field">
             <label class="rb-label" for="address">我的地址</label>
             <div class="rb-row rb-row-gap-sm">
-              <input id="address" class="rb-input" type="text" placeholder="例如：上海市黄浦区南京东路300号" />
+              <input id="address" class="rb-input" type="text" value="Moskva Dovatora 9" placeholder="例如：上海市黄浦区南京东路300号" />
               <button id="btn-geolocate" class="rb-btn rb-btn-ghost" title="使用当前位置">使用定位</button>
             </div>
           </div>
@@ -68,19 +68,14 @@
           <div class="rb-field">
             <label class="rb-label" for="radius">半径（米）</label>
             <div class="rb-row rb-row-gap-sm">
-              <select id="radius" class="rb-input">
-                <option value="500">500</option>
-                <option value="1000">1000</option>
-                <option value="1500" selected>1500</option>
-                <option value="2000">2000</option>
-                <option value="3000">3000</option>
-              </select>
+              <input id="radius" class="rb-input" type="number" min="100" max="3000" step="100" value="2000" style="width:120px;" />
               <label class="rb-label" for="maxCount" style="margin-left:8px;">最大数量</label>
               <input id="maxCount" class="rb-input" type="number" min="1" max="200" step="1" value="50" style="width:100px;" />
             </div>
           </div>
         </div>
         <div class="rb-help">提示：请先保存 2GIS API Key，然后输入关键词并搜索。</div>
+        <div class="rb-help" id="stats">结果：—</div>
       </section>
 
       <section class="rb-grid rb-grid-col-2 rb-grid-gap rb-layout">

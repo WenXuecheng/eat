@@ -21,6 +21,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     search: document.getElementById('btn-search'),
     radius: document.getElementById('radius'),
     maxCount: document.getElementById('maxCount'),
+    stats: document.getElementById('stats'),
     presetBtns: Array.from(document.querySelectorAll('[data-kw]')),
     wheel: document.getElementById('wheel'),
     spin: document.getElementById('btn-spin'),
@@ -29,10 +30,12 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
   };
 
   let map, centerMarker, searchCircle;
-  let currentCenter = { lat: 31.2304, lng: 121.4737 }; // default: Shanghai
+  // Default to Moscow center like index 2.html. Address input defaults to "Moskva Dovatora 9".
+  let currentCenter = { lat: 55.751244, lng: 37.618423 };
   let restaurants = []; // current result set
   let markers = [];
-  const DEFAULT_RADIUS = 1500; // meters
+  const DEFAULT_RADIUS = 2000; // meters
+  let lastSearchTotal = null; // API reported total results if available
 
   // Spinner state
   const ctx = els.wheel.getContext('2d');
@@ -65,7 +68,12 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
         zoomControl: true,
       });
 
-      centerMarker = DG.marker([currentCenter.lat, currentCenter.lng], { draggable: true }).addTo(map);
+      const yellowIcon = DG.divIcon({
+        className: 'custom-yellow-icon',
+        html: '<div style="width:18px;height:18px;background:#FFD700;border-radius:50%;border:3px solid #333;box-shadow:0 0 0 2px rgba(255,215,0,0.25)"></div>',
+        iconSize: [18,18], iconAnchor: [9,9], popupAnchor: [0,-10]
+      });
+      centerMarker = DG.marker([currentCenter.lat, currentCenter.lng], { draggable: true, icon: yellowIcon, title: '中心点（可拖动）' }).addTo(map);
       centerMarker.on('dragend', () => {
         const ll = centerMarker.getLatLng();
         currentCenter = { lat: ll.lat, lng: ll.lng };
@@ -158,6 +166,9 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       const finalList = Array.isArray(list) ? list.slice(0, limit) : [];
       // draw or update search circle
       drawSearchCircle(center, radius);
+      if (els.stats) {
+        els.stats.textContent = '结果：' + finalList.length + (lastSearchTotal != null ? (' / ' + lastSearchTotal) : '');
+      }
       return finalList;
     } catch (e) {
       console.warn('2GIS 加载失败', e);
@@ -186,6 +197,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
 
     async function nearbyPaginated() {
       const all = [];
+      lastSearchTotal = null;
       for (let page = 1; page <= DEMO_PAGE_MAX; page++) {
         const p = new URLSearchParams({
           key: apiKey,
@@ -197,6 +209,9 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
           fields: 'items.name,items.point,items.address,items.contact_groups,items.rating,items.links,items.external_content'
         });
         const data = await fetchPage(p);
+        if (lastSearchTotal == null && data && data.result && typeof data.result.total === 'number') {
+          lastSearchTotal = data.result.total;
+        }
         const items = (data && data.result && data.result.items) || [];
         if (!items.length) break;
         all.push(...items);
@@ -217,6 +232,9 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
         fields: 'items.name,items.point,items.address,items.contact_groups,items.rating,items.links,items.external_content'
       });
       const data = await fetchPage(p);
+      if (data && data.result && typeof data.result.total === 'number') {
+        lastSearchTotal = data.result.total;
+      }
       return (data && data.result && data.result.items) || [];
     }
 
@@ -234,6 +252,9 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
         const qOnly = [rawKw || keyword || 'food', addrText].filter(Boolean).join(' ');
         const params = { key: apiKey, q: qOnly, page: '1', page_size: String(DEMO_PAGE_SIZE_MAX), fields: 'items.name,items.point,items.address,items.contact_groups,items.rating,items.links,items.external_content' };
         return jsonpPreferDG(endpoint, params).then((res) => {
+          if (res && res.result && typeof res.result.total === 'number') {
+            lastSearchTotal = res.result.total;
+          }
           const items = (res && res.result && res.result.items) || [];
           return items.map(map2GisItem).filter(Boolean);
         });
@@ -497,6 +518,9 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
 
     restaurants = await loadRestaurants(currentCenter);
     if (!restaurants.length) {
+      if (els.stats) {
+        els.stats.textContent = '结果：0' + (lastSearchTotal != null ? (' / ' + lastSearchTotal) : '');
+      }
       alert('未找到符合关键词的地点，请更换关键词再试');
       return;
     }
@@ -571,6 +595,15 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     });
   }
   els.spin.addEventListener('click', startSpin);
+
+  if (els.radius) {
+    els.radius.addEventListener('change', () => handleSearch(currentCenter));
+    els.radius.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleSearch(currentCenter); });
+  }
+  if (els.maxCount) {
+    els.maxCount.addEventListener('change', () => handleSearch(currentCenter));
+    els.maxCount.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleSearch(currentCenter); });
+  }
 
   // Initial draw
   // Prefill saved key
