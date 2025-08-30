@@ -23,11 +23,10 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     maxCount: document.getElementById('maxCount'),
     stats: document.getElementById('stats'),
     presetSelect: document.getElementById('presetSelect'),
-    overlayStats: document.getElementById('overlayStats'),
-    overlayList: document.getElementById('overlayList'),
+    panelStats: document.getElementById('panelStats'),
+    resultsGrid: document.getElementById('resultsGrid'),
     presetBtns: Array.from(document.querySelectorAll('[data-kw]')),
-    wheel: document.getElementById('wheel'),
-    spin: document.getElementById('btn-spin'),
+    start: document.getElementById('btn-start'),
     selection: document.getElementById('selection'),
     map: document.getElementById('map'),
   };
@@ -40,17 +39,8 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
   const DEFAULT_RADIUS = 1000; // meters
   let lastSearchTotal = null; // API reported total results if available
 
-  // Spinner state
-  const ctx = els.wheel.getContext('2d');
-  let spinState = {
-    spinning: false,
-    rotation: 0,
-    target: 0,
-    start: 0,
-    startTime: 0,
-    duration: 0,
-    items: [],
-  };
+  // Shuffle state for results grid
+  let shuffleState = { running: false, timer: null, items: [], lastIdx: -1 };
 
   // Colors palette for wheel segments
   const COLORS = [
@@ -320,36 +310,115 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     if (bounds.length) {
       try { map.fitBounds(bounds, { padding: [30, 30] }); } catch {}
     }
-    updateMapOverlay(list);
+    updateResultsPanel(list);
   }
-
-  function updateMapOverlay(list) {
-    if (!els.overlayStats || !els.overlayList) return;
-    els.overlayStats.textContent = '结果：' + list.length + (lastSearchTotal != null ? (' / ' + lastSearchTotal) : '');
-    applyGradualBlur([els.overlayStats]);
+  
+  function updateResultsPanel(list) {
+    if (els.panelStats) els.panelStats.textContent = '结果：' + list.length + (lastSearchTotal != null ? (' / ' + lastSearchTotal) : '');
+    if (!els.resultsGrid) return;
+    els.resultsGrid.classList.add('inf-menu');
     const center = currentCenter;
     const items = list.map((it) => ({
       it,
       dist: haversine(center.lat, center.lng, it.lat, it.lng)
-    })).sort((a, b) => a.dist - b.dist).slice(0, 15);
-    els.overlayList.innerHTML = '';
-    els.overlayList.classList.add('rb-ss');
+    }));
+    els.resultsGrid.innerHTML = '';
+    // Build first segment
     items.forEach(({ it, dist }) => {
-      const div = document.createElement('div');
-      div.className = 'overlay-item rb-ss-item';
+      const cell = document.createElement('div');
+      cell.className = 'results-cell';
       const km = dist >= 1000 ? (dist / 1000).toFixed(2) + ' km' : Math.round(dist) + ' m';
-      div.innerHTML = `<div class="name">${escapeHtml(it.name)}</div><div class="addr">${escapeHtml(it.address || '')}<span class="dist">${km}</span></div>`;
-      div.addEventListener('click', () => {
-        try {
-          const ll = DG.latLng(it.lat, it.lng);
-          map.setView(ll, Math.max(map.getZoom(), 15));
-        } catch {}
+      cell.innerHTML = `<div class="name">${escapeHtml(it.name)}</div><div class="addr">${escapeHtml(it.address || '')}<span class="dist">${km}</span></div>`;
+      cell.addEventListener('click', () => {
+        try { map.setView([it.lat, it.lng], Math.max(map.getZoom(), 15)); } catch {}
+        showSelection(it);
       });
-      els.overlayList.appendChild(div);
+      els.resultsGrid.appendChild(cell);
     });
-    applyGradualBlur(Array.from(els.overlayList.children));
-    applyScrollStack(els.overlayList);
+    // Duplicate for seamless loop
+    items.forEach(({ it, dist }) => {
+      const cell = document.createElement('div');
+      cell.className = 'results-cell';
+      const km = dist >= 1000 ? (dist / 1000).toFixed(2) + ' km' : Math.round(dist) + ' m';
+      cell.innerHTML = `<div class="name">${escapeHtml(it.name)}</div><div class="addr">${escapeHtml(it.address || '')}<span class="dist">${km}</span></div>`;
+      cell.addEventListener('click', () => {
+        try { map.setView([it.lat, it.lng], Math.max(map.getZoom(), 15)); } catch {}
+        showSelection(it);
+      });
+      els.resultsGrid.appendChild(cell);
+    });
+    shuffleState.items = list.slice();
+    if (els.start) els.start.disabled = list.length === 0;
+    initInfiniteAutoScroll(els.resultsGrid, list.length);
   }
+
+  // Auto-scrolling state for infinite menu
+  const autoScroll = { running: false, raf: 0, last: 0, speed: 28, segHeight: 0, container: null, resumeTimer: 0, touchY: 0 };
+  function initInfiniteAutoScroll(container, segCount) {
+    try {
+      autoScroll.container = container;
+      container.scrollTop = 0;
+      requestAnimationFrame(() => {
+        autoScroll.segHeight = Math.max(1, Math.floor(container.scrollHeight / 2));
+        startAutoScroll();
+      });
+      // install wheel/touch handlers once
+      if (!container.__infHandlersInstalled) {
+        const onWheel = (e) => {
+          try {
+            e.preventDefault();
+            pauseAutoScroll();
+            const c = autoScroll.container;
+            c.scrollTop += e.deltaY;
+            if (c.scrollTop < 0) c.scrollTop += autoScroll.segHeight;
+            if (c.scrollTop >= autoScroll.segHeight) c.scrollTop -= autoScroll.segHeight;
+            clearTimeout(autoScroll.resumeTimer);
+            autoScroll.resumeTimer = setTimeout(resumeAutoScroll, 900);
+          } catch {}
+        };
+        const onTouchStart = (e) => { try { autoScroll.touchY = e.touches && e.touches[0] ? e.touches[0].clientY : 0; pauseAutoScroll(); } catch {} };
+        const onTouchMove = (e) => {
+          try {
+            if (!e.touches || !e.touches[0]) return;
+            const y = e.touches[0].clientY;
+            const dy = autoScroll.touchY ? (autoScroll.touchY - y) : 0;
+            autoScroll.touchY = y;
+            const c = autoScroll.container;
+            c.scrollTop += dy;
+            if (c.scrollTop < 0) c.scrollTop += autoScroll.segHeight;
+            if (c.scrollTop >= autoScroll.segHeight) c.scrollTop -= autoScroll.segHeight;
+            e.preventDefault();
+            clearTimeout(autoScroll.resumeTimer);
+            autoScroll.resumeTimer = setTimeout(resumeAutoScroll, 900);
+          } catch {}
+        };
+        container.addEventListener('wheel', onWheel, { passive: false });
+        container.addEventListener('touchstart', onTouchStart, { passive: true });
+        container.addEventListener('touchmove', onTouchMove, { passive: false });
+        container.__infHandlersInstalled = true;
+      }
+    } catch {}
+  }
+  function startAutoScroll() {
+    if (!autoScroll.container) return;
+    autoScroll.running = true;
+    autoScroll.last = performance.now();
+    cancelAnimationFrame(autoScroll.raf);
+    const tick = (ts) => {
+      if (!autoScroll.running) return;
+      const dt = Math.max(0, ts - autoScroll.last);
+      autoScroll.last = ts;
+      const c = autoScroll.container;
+      c.scrollTop += (autoScroll.speed * dt) / 1000;
+      if (c.scrollTop >= autoScroll.segHeight) c.scrollTop -= autoScroll.segHeight;
+      autoScroll.raf = requestAnimationFrame(tick);
+    };
+    autoScroll.raf = requestAnimationFrame(tick);
+    autoScroll.container.addEventListener('mouseenter', pauseAutoScroll, { passive: true });
+    autoScroll.container.addEventListener('mouseleave', resumeAutoScroll, { passive: true });
+  }
+  function pauseAutoScroll() { autoScroll.running = false; cancelAnimationFrame(autoScroll.raf); }
+  function resumeAutoScroll() { if (!autoScroll.running) startAutoScroll(); }
 
   // Inside-IIFE helpers so they can access `els`
   function getRadiusMeters() {
@@ -380,97 +449,10 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
 
   
 
-  function drawWheel(items) {
-    const cw = Math.max(els.wheel.clientWidth, 1);
-    const ch = Math.max(els.wheel.clientHeight, 1);
-    const cx = cw / 2, cy = ch / 2;
-    const r = Math.min(cx, cy) - 6;
-    ctx.clearRect(0, 0, cw, ch);
+  // Wheel removed
 
-    if (!items.length) {
-      // Draw placeholder circle
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.strokeStyle = '#2a3046';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      ctx.fillStyle = '#2a3046';
-      ctx.textAlign = 'center';
-      ctx.font = '14px system-ui, -apple-system, Segoe UI';
-      ctx.fillText('请先搜索饭店', cx, cy);
-      return;
-    }
-
-    const seg = (Math.PI * 2) / items.length;
-    for (let i = 0; i < items.length; i++) {
-      const start = spinState.rotation + i * seg;
-      const end = start + seg;
-      // slice
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.arc(cx, cy, r, start, end);
-      ctx.closePath();
-      ctx.fillStyle = COLORS[i % COLORS.length];
-      ctx.globalAlpha = 0.9;
-      ctx.fill();
-      ctx.globalAlpha = 1;
-
-      // slice border
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.arc(cx, cy, r, start, end);
-      ctx.closePath();
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = 'rgba(0,0,0,0.25)';
-      ctx.stroke();
-
-      // label outside the wheel for readability
-      const mid = (start + end) / 2;
-      const rx = cx + Math.cos(mid) * (r + 16);
-      const ry = cy + Math.sin(mid) * (r + 16);
-      ctx.save();
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      // Use a more prominent label color on the wheel
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 13px system-ui, -apple-system, Segoe UI';
-      const label = truncate(items[i].name, 18);
-      // optional guide line
-      ctx.beginPath();
-      ctx.moveTo(cx + Math.cos(mid) * r, cy + Math.sin(mid) * r);
-      ctx.lineTo(rx, ry);
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-      ctx.stroke();
-      // text
-      drawTextWithShadowAt(ctx, label, rx, ry);
-      ctx.restore();
-    }
-
-    // center hub
-    ctx.beginPath();
-    ctx.arc(cx, cy, 18, 0, Math.PI * 2);
-    ctx.fillStyle = '#0e1320';
-    ctx.fill();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = '#4f8cff';
-    ctx.stroke();
-  }
-
-  function drawTextWithShadow(ctx, text) {
-    ctx.shadowColor = 'rgba(0,0,0,0.6)';
-    ctx.shadowBlur = 6;
-    ctx.shadowOffsetY = 2;
-    ctx.fillText(text, 0, 0);
-    ctx.shadowColor = 'transparent';
-  }
-
-  function drawTextWithShadowAt(ctx, text, x, y) {
-    ctx.save();
-    ctx.translate(x, y);
-    drawTextWithShadow(ctx, text);
-    ctx.restore();
-  }
+  function drawTextWithShadow() {}
+  function drawTextWithShadowAt() {}
 
   function truncate(s, n) {
     return s.length > n ? s.slice(0, n - 1) + '…' : s;
@@ -491,47 +473,37 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
   }
 
   function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
-
-  function startSpin() {
-    if (spinState.spinning || !spinState.items.length) return;
-    // 4–6 full rotations + random offset
-    const fullTurns = 4 + Math.floor(Math.random() * 3);
-    const randomOffset = Math.random() * Math.PI * 2;
-    spinState.start = spinState.rotation % (Math.PI * 2);
-    spinState.target = spinState.start + fullTurns * Math.PI * 2 + randomOffset;
-    spinState.startTime = performance.now();
-    spinState.duration = 2500 + Math.random() * 1200; // ms
-    spinState.spinning = true;
-    els.spin.disabled = true;
-    requestAnimationFrame(tickSpin);
-  }
-
-  function tickSpin(ts) {
-    const t = Math.min(1, (ts - spinState.startTime) / spinState.duration);
-    const k = easeOutCubic(t);
-    spinState.rotation = spinState.start + (spinState.target - spinState.start) * k;
-    drawWheel(spinState.items);
-    if (t < 1) {
-      requestAnimationFrame(tickSpin);
-    } else {
-      spinState.spinning = false;
-      els.spin.disabled = false;
-      onSpinEnd();
+  function startShuffle() {
+    if (!shuffleState.items.length || shuffleState.running) return;
+    shuffleState.running = true;
+    if (els.start) els.start.disabled = true;
+    const cells = els.resultsGrid ? Array.from(els.resultsGrid.children) : [];
+    const t0 = performance.now();
+    let speed = 100;
+    function step() {
+      if (!shuffleState.running) return;
+      const now = performance.now();
+      const elapsed = now - t0;
+      const p = Math.min(1, elapsed / 3000);
+      speed = 50 + Math.floor(250 * (1 - easeOutCubic(1 - p)));
+      if (cells.length) {
+        const idx = Math.floor(Math.random() * cells.length);
+        if (shuffleState.lastIdx >= 0 && shuffleState.lastIdx < cells.length) cells[shuffleState.lastIdx].classList.remove('active');
+        cells[idx].classList.add('active');
+        shuffleState.lastIdx = idx;
+      }
+      if (elapsed >= 3000) {
+        shuffleState.running = false;
+        if (els.start) els.start.disabled = false;
+        const idxFinal = shuffleState.lastIdx >= 0 ? shuffleState.lastIdx : 0;
+        const baseLen = Math.max(1, shuffleState.items.length);
+        const chosen = shuffleState.items[idxFinal % baseLen] || shuffleState.items[0];
+        if (chosen) showSelection(chosen);
+        return;
+      }
+      shuffleState.timer = setTimeout(step, speed);
     }
-  }
-
-  function onSpinEnd() {
-    const items = spinState.items;
-    if (!items.length) return;
-    const seg = (Math.PI * 2) / items.length;
-    // pointer at angle 0 (upwards). Wheel rotation is clockwise drawing; selected index is reverse of rotation.
-    const a = (Math.PI * 2 - (spinState.rotation % (Math.PI * 2))) % (Math.PI * 2);
-    const idx = Math.floor(a / seg) % items.length;
-    const chosen = items[idx];
-    showSelection(chosen);
-    // focus marker
-    const m = markers[idx];
-    if (m) { m.openPopup(); map.setView(m.getLatLng(), Math.max(map.getZoom(), 15)); }
+    step();
   }
 
   function showSelection(item) {
@@ -587,15 +559,8 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       alert('未找到符合关键词的地点，请更换关键词再试');
       return;
     }
-    // Always show all results on the map, but only sample up to 12 for the wheel
-    const MAX_WHEEL = 12;
-    const wheelItems = sampleMax(restaurants, MAX_WHEEL);
-
+    // Show all results
     updateMapMarkers(restaurants);
-    spinState.items = wheelItems;
-    spinState.rotation = 0;
-    drawWheel(wheelItems);
-    els.spin.disabled = false;
   }
 
   // Geocoding strictly via 2GIS Catalog: items?q=address&fields=items.point
@@ -656,7 +621,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       }
     });
   }
-  els.spin.addEventListener('click', startSpin);
+  if (els.start) els.start.addEventListener('click', startShuffle);
 
   if (els.radius) {
     els.radius.addEventListener('change', () => handleSearch(currentCenter));
@@ -676,8 +641,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       if (els.apiKey) els.apiKey.value = saved;
     }
   } catch {}
-  setupResponsiveWheel();
-  drawWheel([]);
+  // No wheel initialization
   initMap();
 
   // Utility: take up to n random unique items

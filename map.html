@@ -7,21 +7,23 @@
   <!-- 2GIS Maps JS -->
   <script src="https://maps.api.2gis.ru/2.0/loader.js?pkg=full"></script>
   <style>
-    :root { --border:#ececec; --muted:#666; --pill:#f5f5f5; --pill-border:#ddd; }
+    :root { --border:#333; --muted:#999; --pill:rgba(255,255,255,0.1); --pill-border:#444; }
     html,body { height:100%; }
-    body { margin:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial; }
-    header { padding: 10px 14px; border-bottom:1px solid var(--border); display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    body { margin:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial; background-color: #000; color: #fff; }
+    header { padding: 10px 14px; border-bottom:1px solid var(--border); display:flex; gap:10px; align-items:center; flex-wrap:wrap; background: rgba(0,0,0,0.5); backdrop-filter: blur(10px); }
     header strong { margin-right: 6px; }
-    label { font-size:13px; color:#222; display:flex; gap:6px; align-items:center; }
-    input, button { padding:6px 10px; font-size:14px; }
+    label { font-size:13px; color:#eee; display:flex; gap:6px; align-items:center; }
+    input, button { padding:6px 10px; font-size:14px; background: rgba(255,255,255,0.1); border: 1px solid #444; color: #fff; border-radius: 4px; }
+    input:focus { outline: 1px solid #58a; }
     input[type="number"] { width:100px; }
     button { cursor:pointer; }
+    button:hover { background: rgba(255,255,255,0.2); }
     #app { display:grid; grid-template-columns: 380px 1fr; height: calc(100vh - 56px); }
     /* Correct mobile viewport height (Safari address bar) */
     @supports (height: 100svh) {
       #app { height: calc(100svh - 56px); }
     }
-    #sidebar { border-right:1px solid var(--border); overflow:auto; display:flex; flex-direction:column; }
+    #sidebar { border-right:1px solid var(--border); overflow:auto; display:flex; flex-direction:column; background: rgba(0,0,0,0.5); backdrop-filter: blur(10px); }
     @media (max-width: 768px) {
       #app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: calc(100vh - 52px); }
       #sidebar { border-right:0; border-bottom:1px solid var(--border); height: 50vh; }
@@ -33,25 +35,27 @@
     .addr { margin:4px 0 8px; font-size:13px; }
     .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
     .pill { display:inline-block; font-size:12px; padding:2px 8px; background:var(--pill); border:1px solid var(--pill-border); border-radius:16px; }
-    .card { padding:10px 12px; border-bottom:1px solid #f5f5f5; cursor:pointer; }
-    .card h4 { margin:0 0 6px; font-size:15px; }
-    .small { font-size:12px; color:#333; }
-    .error { color:#b00020; padding:10px 12px; }
+    .card { padding:10px 12px; border-bottom:1px solid #222; cursor:pointer; }
+    .card:hover { background: rgba(255,255,255,0.05); }
+    .card h4 { margin:0 0 6px; font-size:15px; color: #eee; }
+    .small { font-size:12px; color:#ccc; }
+    .error { color:#ff4d4d; padding:10px 12px; }
     .hint { padding: 0 12px 8px 12px; }
     .filters { padding: 10px 12px 14px 12px; border-top:1px solid var(--border); }
-    .chip { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; margin:6px 6px 0 0; background:#fff; border:1px solid #ddd; border-radius:18px; font-size:13px; cursor:pointer; }
-    .chip.active { border-color:#1677ff; box-shadow:0 0 0 2px rgba(22,119,255,.12) inset; }
-    .chip small { color:#666; }
+    .chip { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; margin:6px 6px 0 0; background:rgba(255,255,255,0.1); border:1px solid #444; border-radius:18px; font-size:13px; cursor:pointer; color: #fff; }
+    .chip:hover { background: rgba(255,255,255,0.2); }
+    .chip.active { border-color:#1677ff; box-shadow:0 0 0 2px rgba(22,119,255,.2) inset; }
+    .chip small { color:#999; }
     .footer-space { height:10px; }
     /* === 星级样式 === */
     .stars { display:inline-block; font-size:13px; line-height:1; }
     .star { display:inline-block; width:14px; text-align:center; }
     .star.filled { color:#f7b500; }
     .star.half { color:#f7b500; }
-    .star.empty { color:#ccc; }
+    .star.empty { color:#555; }
     .rating-line { display:flex; gap:8px; align-items:center; margin:4px 0 2px; }
-    .rating-num { font-size:12px; color:#222; }
-    .rating-count { font-size:12px; color:#666; }
+    .rating-num { font-size:12px; color:#eee; }
+    .rating-count { font-size:12px; color:#999; }
     /* Responsive layout for narrow screens */
     @media (max-width: 860px) {
       #app { grid-template-columns: 1fr; }
@@ -231,7 +235,7 @@
         url.searchParams.set("lon", String(lon));
         url.searchParams.set("lat", String(lat));
         url.searchParams.set("fields", "items.address,items.point");
-        url.searchParams.set("key", API_KEY);
+        url.search_params.set("key", API_KEY);
 
         const r = await fetch(url.toString());
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -541,6 +545,20 @@
       const c = Number.isFinite(count) ? count : 0;
       return `<small>${r} 分 · ${c} 条点评</small>`;
     }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/ogl@0.0.101/dist/ogl.umd.js"></script>
+  <script src="assets/galaxy.js"></script>
+  <script>
+    const galaxyContainer = document.getElementById('galaxy-container');
+    Galaxy(galaxyContainer, {
+        transparent: false,
+        mouseRepulsion: true,
+        mouseInteraction: true,
+        density: 1.5,
+        glowIntensity: 0.5,
+        saturation: 0.8,
+        hueShift: 240
+    });
   </script>
 </body>
 </html>

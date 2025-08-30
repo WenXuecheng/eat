@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Galaxy Background — Pure HTML/Canvas</title>
+  <style>
+    :root { --bg:#0b1020; --fg:#e6e6f0; --muted:#9aa1b1; }
+    html, body { height:100%; }
+    body {
+      margin:0; background: radial-gradient(1200px 700px at 50% 45%, #151b35 0%, #0e1329 60%, #0b1020 100%);
+      color:var(--fg); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Arial,sans-serif;
+      overflow:hidden;
+    }
+    /* 全屏画布在底层 */
+    #galaxy {
+      position:fixed; inset:0; width:100%; height:100%; display:block; z-index:-1;
+      pointer-events:none; /* 不挡交互 */
+    }
+    /* 顶部内容示例，可替换为你的页面 */
+    header {
+      position:relative; z-index:1; padding:28px 22px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;
+      backdrop-filter: blur(4px) saturate(1.2);
+      -webkit-backdrop-filter: blur(4px) saturate(1.2);
+    }
+    .badge { padding:6px 10px; border:1px solid #2a3158; border-radius:999px; color:#cfd6ff; font-size:12px; background:#0f1430c0; }
+    h1 { margin:0; font-size:22px; letter-spacing:.2px; }
+    .controls {
+      position:fixed; right:14px; bottom:14px; z-index:10; display:flex; gap:8px; align-items:center;
+      font-size:12px; color:var(--muted); background:#0b1020cc; border:1px solid #1d2545; border-radius:12px; padding:8px 10px;
+    }
+    .controls button {
+      cursor:pointer; padding:6px 10px; border-radius:8px; border:1px solid #2a3158; background:#11173a; color:#cfd6ff;
+    }
+    .controls input[type="range"] { width:140px; accent-color:#7aa2ff; }
+    @media (prefers-reduced-motion: reduce) {
+      /* 降级：减少旋转与闪烁 */
+      .controls { display:none; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="galaxy"></canvas>
+
+  <!-- 你的页面内容（示例） -->
+  <header>
+    <span class="badge">Galaxy Background</span>
+    <h1>纯前端可部署到 GitHub Pages</h1>
+  </header>
+
+  <!-- 交互控件（可选） -->
+  <div class="controls">
+    <label>速度 <input id="speed" type="range" min="0" max="100" value="30" /></label>
+    <label>密度 <input id="density" type="range" min="10" max="120" value="60" /></label>
+    <button id="toggle">暂停</button>
+  </div>
+
+  <script>
+    // ======== 基本设置 ========
+    const canvas = document.getElementById('galaxy');
+    const ctx = canvas.getContext('2d', { alpha: true });
+    let W = 0, H = 0, DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1)); // 限制 DPR，兼顾性能
+    function resize() {
+      W = Math.floor(window.innerWidth);
+      H = Math.floor(window.innerHeight);
+      canvas.width = Math.floor(W * DPR);
+      canvas.height = Math.floor(H * DPR);
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    }
+    window.addEventListener('resize', () => { resize(); initStars(); });
+    resize();
+
+    // ======== 星系参数 ========
+    const ARMS = 3;                 // 螺旋臂数
+    let BASE_SPEED = 0.03;          // 全局旋转速度（弧度/秒）
+    let BASE_DENSITY = 0.6;         // 密度系数（0-1）
+    const TWIST = 8.0;              // 螺旋紧致度（半径对角度的影响）
+    const STAR_MIN = 0.6;           // 星点最小尺寸（像素）
+    const STAR_MAX = 2.4;           // 星点最大尺寸（像素）
+    const CORE_GLOW = true;         // 核心光晕
+
+    // 根据画布面积自适应星数
+    function targetStarCount() {
+      const area = W * H;
+      // 基础密度：每 900 像素约 1 颗星，随密度系数线性缩放，上限 4000
+      return Math.min(4000, Math.floor((area / 900) * (0.3 + 1.2 * BASE_DENSITY)));
+    }
+
+    // ======== 工具：高斯噪声（Box–Muller） ========
+    function randn() {
+      let u = 0, v = 0;
+      while (u === 0) u = Math.random();
+      while (v === 0) v = Math.random();
+      return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    }
+
+    // ======== 星数据结构 ========
+    let stars = [];
+    function initStars() {
+      const N = targetStarCount();
+      stars = new Array(N);
+      const cx = W / 2, cy = H / 2;
+      const maxR = Math.min(W, H) * 0.55; // 星系半径
+      for (let i = 0; i < N; i++) {
+        // 半径分布：靠中心更密（对随机做幂次）
+        const r01 = Math.pow(Math.random(), 1.6); // 0..1
+        const radius = r01 * maxR;
+
+        // 选择某一条螺旋臂
+        const arm = Math.floor(Math.random() * ARMS);
+        const baseAngle = (arm * 2 * Math.PI) / ARMS;
+
+        // 螺旋角度：随半径推进 + 少量噪声形成散布
+        const angle0 = baseAngle + r01 * TWIST + randn() * 0.15;
+
+        // 颜色倾向：蓝紫/粉星混合
+        const hue = 200 + Math.floor(70 * Math.random()); // 200~270
+        const sat = 60 + Math.floor(25 * Math.random());  // 60~85%
+        const light = 60 + Math.floor(20 * (1 - r01));    // 内核更亮
+
+        // 尺寸 & 透明度（内核更亮更大）
+        const size = STAR_MIN + (STAR_MAX - STAR_MIN) * (1 - r01) * (0.6 + Math.random() * 0.4);
+        const baseAlpha = 0.25 + 0.65 * (1 - r01);
+
+        // 自转：内核更快（差速旋转制造层次）
+        const spin = (0.6 + 0.8 * (1 - r01)); // 0.6..1.4
+
+        // 闪烁频率与相位
+        const twinkleF = 0.8 + Math.random() * 1.6;
+        const twinklePhi = Math.random() * Math.PI * 2;
+
+        stars[i] = {
+          r01, radius, angle0, hue, sat, light, size, baseAlpha, spin,
+          twinkleF, twinklePhi
+        };
+      }
+    }
+    initStars();
+
+    // ======== 动画循环 ========
+    let running = true;
+    let t0 = performance.now();
+    function frame(now) {
+      if (!running) return;
+      const dt = Math.max(0.001, (now - t0) / 1000);
+      t0 = now;
+
+      // 背景（半透明叠加制造深度）
+      ctx.clearRect(0, 0, W, H);
+      if (CORE_GLOW) {
+        const g = ctx.createRadialGradient(W/2, H/2, 10, W/2, H/2, Math.min(W,H)*0.6);
+        g.addColorStop(0.0, 'rgba(255,255,255,0.10)');
+        g.addColorStop(0.2, 'rgba(200,180,255,0.06)');
+        g.addColorStop(1.0, 'rgba(0,0,0,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      // 叠加模式：lighter 让星点发光
+      const cx = W / 2, cy = H / 2;
+      const maxR = Math.min(W, H) * 0.55;
+      ctx.globalCompositeOperation = 'lighter';
+
+      // 全局旋转角（秒为单位）
+      const globalAngle = BASE_SPEED * now / 1000;
+
+      for (let i = 0; i < stars.length; i++) {
+        const s = stars[i];
+
+        // 差速自转：角 = 初始 + 全局角 * 自身旋转系数
+        const angle = s.angle0 + globalAngle * s.spin;
+        const rr = s.radius;
+
+        // 极坐标 -> 笛卡尔
+        const x = cx + Math.cos(angle) * rr;
+        const y = cy + Math.sin(angle) * rr;
+
+        // 闪烁（轻微）
+        const twinkle = 0.65 + 0.35 * Math.sin(now * 0.0015 * s.twinkleF + s.twinklePhi);
+        const alpha = Math.max(0, Math.min(1, s.baseAlpha * twinkle));
+
+        ctx.fillStyle = `hsla(${s.hue} ${s.sat}% ${s.light}% / ${alpha})`;
+        // 用小圆模拟星点；可换成 sprite 提升质感
+        ctx.beginPath();
+        ctx.arc(x, y, s.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 内核高亮星群（少量更亮）
+        if (s.r01 < 0.08 && Math.random() < 0.2) {
+          ctx.fillStyle = `hsla(${s.hue} ${s.sat+10}% ${Math.min(85, s.light+10)}% / ${alpha*0.8})`;
+          ctx.beginPath();
+          ctx.arc(x + (Math.random()-0.5)*2, y + (Math.random()-0.5)*2, s.size*1.8, 0, Math.PI*2);
+          ctx.fill();
+        }
+      }
+
+      ctx.globalCompositeOperation = 'source-over';
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+
+    // ======== 控制：速度/密度/暂停 ========
+    const speedEl = document.getElementById('speed');
+    const densityEl = document.getElementById('density');
+    const toggleEl = document.getElementById('toggle');
+
+    speedEl.addEventListener('input', () => {
+      // 0..100 -> 0..0.12 rad/s（非线性映射，低速更细腻）
+      const v = Number(speedEl.value) / 100;
+      BASE_SPEED = 0.001 + Math.pow(v, 1.2) * 0.12;
+    });
+    // 初始速度
+    speedEl.dispatchEvent(new Event('input'));
+
+    densityEl.addEventListener('input', () => {
+      BASE_DENSITY = Number(densityEl.value) / 100;
+      initStars();
+    });
+
+    toggleEl.addEventListener('click', () => {
+      if (running) {
+        running = false;
+        toggleEl.textContent = '继续';
+      } else {
+        running = true;
+        t0 = performance.now();
+        toggleEl.textContent = '暂停';
+        requestAnimationFrame(frame);
+      }
+    });
+
+    // ======== 降级：减少运动（系统偏好） ========
+    const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (mql.matches) {
+      BASE_SPEED = 0.0;
+      speedEl.value = 0;
+    }
+
+    // ======== 页面不可见时自动暂停，省电 ========
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        running = false;
+      } else {
+        if (toggleEl.textContent !== '继续') {
+          running = true;
+          t0 = performance.now();
+          requestAnimationFrame(frame);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
