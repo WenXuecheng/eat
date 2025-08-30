@@ -13,6 +13,8 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
   const els = {
     address: document.getElementById('address'),
     geolocate: document.getElementById('btn-geolocate'),
+    apiKey: document.getElementById('apiKey'),
+    saveKey: document.getElementById('btn-save-key'),
     radius: document.getElementById('radius'),
     search: document.getElementById('btn-search'),
     demo: document.getElementById('demo-mode'),
@@ -104,9 +106,10 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
   // NOTE: For real 2GIS data, implement this using 2GIS Directory API (Catalog API) JSONP.
   async function loadRestaurants(center, radiusMeters) {
     if (!els.demo.checked) {
-      if (window.TWO_GIS_API_KEY) {
+      const key = (els.apiKey && els.apiKey.value ? els.apiKey.value : window.TWO_GIS_API_KEY) || '';
+      if (key) {
         try {
-          const list = await loadRestaurants2GIS(center, radiusMeters, window.TWO_GIS_API_KEY);
+          const list = await loadRestaurants2GIS(center, radiusMeters, key);
           if (Array.isArray(list) && list.length) {
             return list;
           }
@@ -118,17 +121,39 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
     return generateDemoRestaurants(center, radiusMeters, 12);
   }
 
-  // Placeholder for 2GIS Directory API integration (JSONP to avoid CORS in static page)
+  // 2GIS Directory API via JSONP
   function loadRestaurants2GIS(center, radiusMeters, apiKey) {
-    return new Promise((resolve, reject) => {
-      // TODO: 实现 2GIS Catalog API 请求（JSONP）。
-      // 参考方向：catalog.api.2gis.com/3.0/items 或者 2GIS Search API，按经纬度+半径过滤
-      // 需传入 fields=items.point,items.address,items.rating 等。
-      // 前端可使用 DG.ajax.jsonp(url, params, callback)（Maps API 提供的 JSONP 工具）。
-      // 返回格式需要映射为：[{ id, name, lat, lng, address, rating, url, phones: [] }]
-      // 这里先直接 reject，调用方会回退到 Demo 数据。
-      reject(new Error('2GIS API 未实现'));
+    const url = 'https://catalog.api.2gis.com/3.0/items';
+    const params = {
+      key: apiKey,
+      q: 'restaurant', // 可调整：例如 'cafe', 'fast food', 本地语言等
+      type: 'branch',
+      point: `${center.lng},${center.lat}`,
+      radius: Math.max(100, Math.min(3000, Math.floor(radiusMeters))),
+      page_size: 50,
+      fields: 'items.point,items.address,items.contact_groups,items.rating,items.links,items.external_content'
+    };
+    return jsonp(url, params).then((res) => {
+      const items = (res && res.result && res.result.items) || [];
+      return items.map((it) => map2GisItem(it)).filter(Boolean);
     });
+  }
+
+  function map2GisItem(it) {
+    const point = it.point || (it.geometry && it.geometry.centroid);
+    const lat = point ? (point.lat || point.latitude) : undefined;
+    const lng = point ? (point.lon || point.lng || point.longitude) : undefined;
+    if (typeof lat !== 'number' || typeof lng !== 'number') return null;
+    const rating = it.rating && (it.rating.value || it.rating.rating || it.rating.total_rating || it.rating);
+    const address = (it.address && (it.address.name || it.address.address_name || it.address.full_name)) || it.address_name || '';
+    const phones = [];
+    if (it.contact_groups && Array.isArray(it.contact_groups)) {
+      it.contact_groups.forEach((g) => {
+        (g.contacts || []).forEach((c) => { if (c.type === 'phone' && c.value) phones.push(String(c.value)); });
+      });
+    }
+    const url = (it.links && (it.links.site_url || it.links.firm_card)) || (it.external_content && it.external_content.site_url) || '';
+    return { id: String(it.id || it.hash || it.branch_id || Math.random()), name: it.name || '未命名', lat, lng, address, rating, url, phones };
   }
 
   function generateDemoRestaurants(center, radiusMeters, count) {
@@ -367,11 +392,27 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
 
   // Event bindings
   els.geolocate.addEventListener('click', useGeolocation);
+  if (els.saveKey) {
+    els.saveKey.addEventListener('click', () => {
+      const v = (els.apiKey && els.apiKey.value || '').trim();
+      window.TWO_GIS_API_KEY = v;
+      try { localStorage.setItem('two_gis_api_key', v); } catch {}
+      alert('API Key 已保存到本地');
+    });
+  }
   els.search.addEventListener('click', handleSearch);
   els.spin.addEventListener('click', startSpin);
   els.radius.addEventListener('change', drawRadius);
 
   // Initial draw
+  // Prefill saved key
+  try {
+    const saved = localStorage.getItem('two_gis_api_key');
+    if (saved) {
+      window.TWO_GIS_API_KEY = saved;
+      if (els.apiKey) els.apiKey.value = saved;
+    }
+  } catch {}
   setupResponsiveWheel();
   drawWheel([]);
   initMap();
@@ -408,3 +449,25 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
     resizeWheel();
   }
 })();
+
+// Lightweight JSONP helper
+function jsonp(url, params) {
+  return new Promise((resolve, reject) => {
+    const cbName = '__jsonp_cb_' + Math.random().toString(36).slice(2);
+    const qs = new URLSearchParams(params || {});
+    qs.set('callback', cbName);
+    const src = url + '?' + qs.toString();
+    const script = document.createElement('script');
+    let cleaned = false;
+    function cleanup() {
+      if (cleaned) return; cleaned = true;
+      try { delete window[cbName]; } catch { window[cbName] = undefined; }
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+    const timeout = setTimeout(() => { cleanup(); reject(new Error('JSONP timeout')); }, 12000);
+    window[cbName] = (data) => { clearTimeout(timeout); cleanup(); resolve(data); };
+    script.onerror = () => { clearTimeout(timeout); cleanup(); reject(new Error('JSONP script error')); };
+    script.src = src;
+    document.head.appendChild(script);
+  });
+}

@@ -22,14 +22,19 @@
           <button id="btn-geolocate" title="使用当前位置">使用定位</button>
         </div>
         <div class="control-row">
-          <label for="radius">半径（米）</label>
-          <input id="radius" type="number" min="100" step="100" value="1000" />
-          <button id="btn-search">搜索饭店</button>
-          <label class="demo-toggle" title="无 2GIS API Key 时使用示例数据">
+          <label for="apiKey">2GIS API Key</label>
+          <input id="apiKey" type="text" placeholder="粘贴你的 2GIS API Key" />
+          <button id="btn-save-key" title="保存到本地">保存Key</button>
+          <label class="demo-toggle" title="无 Key 或测试时使用示例数据">
             <input id="demo-mode" type="checkbox" /> 使用示例数据
           </label>
         </div>
-        <div class="help">提示：如需真实数据，请配置 2GIS Directory API Key（见下方说明）。</div>
+        <div class="control-row">
+          <label for="radius">半径（米）</label>
+          <input id="radius" type="number" min="100" step="100" value="1000" />
+          <button id="btn-search">搜索饭店</button>
+        </div>
+        <div class="help">提示：保存 API Key 后，取消“使用示例数据”即可拉取真实数据。</div>
       </section>
 
       <section class="layout">
@@ -54,11 +59,10 @@
         地图由 2GIS Maps API 提供。实际餐厅数据需要 2GIS Directory API Key（前端 JSONP 方式调用）。
       </div>
       <div class="foot-notes">
-        在浏览器控制台设置 window.TWO_GIS_API_KEY = '你的Key'，或在 assets/app.js 顶部填写常量即可。
+        可在页面中粘贴并保存 Key；或在 assets/app.js 顶部直接填写常量。
       </div>
     </footer>
 
     <script src="assets/app.js"></script>
   </body>
   </html>
-

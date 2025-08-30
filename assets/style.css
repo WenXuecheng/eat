@@ -40,7 +40,7 @@ input[type="text"], input[type="number"] {
   color: var(--text);
   padding: 8px 10px;
   border-radius: 8px;
-  min-width: 280px;
+  min-width: 260px;
 }
 .controls button {
   background: var(--accent);
