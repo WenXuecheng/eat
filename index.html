@@ -28,7 +28,7 @@
           <span class="rb-logo">🍽️</span>
           <span class="rb-brand-text">今天吃啥</span>
         </div>
-        <div class="rb-brand-sub">随机转盘 · 2GIS 数据</div>
+        <div class="rb-brand-sub">随机转盘 · 2GIS 数据 · <a href="map.html" class="rb-link" style="color: var(--rb-text); text-decoration: underline;">进阶地图页</a></div>
       </div>
     </header>
 
@@ -59,13 +59,16 @@
             </div>
             <div class="rb-row rb-row-gap-sm rb-presets">
               <span class="rb-muted">快捷：</span>
-              <button class="rb-btn rb-btn-outline rb-btn-chip" data-kw="饭店">饭店</button>
-              <button class="rb-btn rb-btn-outline rb-btn-chip" data-kw="酒店">酒店</button>
-              <button class="rb-btn rb-btn-outline rb-btn-chip" data-kw="公园">公园</button>
-              <button class="rb-btn rb-btn-outline rb-btn-chip" data-kw="咖啡厅">咖啡厅</button>
-              <button class="rb-btn rb-btn-outline rb-btn-chip" data-kw="酒吧">酒吧</button>
-              <button class="rb-btn rb-btn-outline rb-btn-chip" data-kw="地铁站">地铁站</button>
-              <button class="rb-btn rb-btn-outline rb-btn-chip" data-kw="公交车站">公交车站</button>
+              <select id="presetSelect" class="rb-input" style="max-width: 260px;">
+                <option value="">选择类型…</option>
+                <option value="饭店">🍽️ 饭店</option>
+                <option value="酒店">🏨 酒店</option>
+                <option value="咖啡厅">☕ 咖啡厅</option>
+                <option value="酒吧">🍺 酒吧</option>
+                <option value="地铁站">🚇 地铁站</option>
+                <option value="公交车站">🚏 公交车站</option>
+                <option value="公园">🏞️ 公园</option>
+              </select>
             </div>
           </div>
 
@@ -85,6 +88,10 @@
       <section class="rb-grid rb-grid-col-2 rb-grid-gap rb-layout">
         <div class="rb-card rb-card-fill">
           <div id="map" class="map"></div>
+          <div class="map-overlay">
+            <div id="overlayStats" class="overlay-stats">结果：—</div>
+            <div id="overlayList" class="overlay-list"></div>
+          </div>
         </div>
         <div class="rb-stack-md">
           <div class="rb-card rb-center">

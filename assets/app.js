@@ -22,6 +22,9 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     radius: document.getElementById('radius'),
     maxCount: document.getElementById('maxCount'),
     stats: document.getElementById('stats'),
+    presetSelect: document.getElementById('presetSelect'),
+    overlayStats: document.getElementById('overlayStats'),
+    overlayList: document.getElementById('overlayList'),
     presetBtns: Array.from(document.querySelectorAll('[data-kw]')),
     wheel: document.getElementById('wheel'),
     spin: document.getElementById('btn-spin'),
@@ -30,7 +33,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
   };
 
   let map, centerMarker, searchCircle;
-  // Default to Moscow center like index 2.html. Address input defaults to "Moskva Dovatora 9".
+  // Default to Moscow center like map.html. Address input defaults to "Moskva Dovatora 9".
   let currentCenter = { lat: 55.751244, lng: 37.618423 };
   let restaurants = []; // current result set
   let markers = [];
@@ -77,7 +80,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       centerMarker.on('dragend', () => {
         const ll = centerMarker.getLatLng();
         currentCenter = { lat: ll.lat, lng: ll.lng };
-        // auto-refresh results on drag, like index 2.html
+        // auto-refresh results on drag, like map.html
         handleSearch(currentCenter);
       });
     });
@@ -304,6 +307,31 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     if (bounds.length) {
       try { map.fitBounds(bounds, { padding: [30, 30] }); } catch {}
     }
+    updateMapOverlay(list);
+  }
+
+  function updateMapOverlay(list) {
+    if (!els.overlayStats || !els.overlayList) return;
+    els.overlayStats.textContent = '结果：' + list.length + (lastSearchTotal != null ? (' / ' + lastSearchTotal) : '');
+    const center = currentCenter;
+    const items = list.map((it) => ({
+      it,
+      dist: haversine(center.lat, center.lng, it.lat, it.lng)
+    })).sort((a, b) => a.dist - b.dist).slice(0, 15);
+    els.overlayList.innerHTML = '';
+    items.forEach(({ it, dist }) => {
+      const div = document.createElement('div');
+      div.className = 'overlay-item';
+      const km = dist >= 1000 ? (dist / 1000).toFixed(2) + ' km' : Math.round(dist) + ' m';
+      div.innerHTML = `<div class="name">${escapeHtml(it.name)}</div><div class="addr">${escapeHtml(it.address || '')}<span class="dist">${km}</span></div>`;
+      div.addEventListener('click', () => {
+        try {
+          const ll = DG.latLng(it.lat, it.lng);
+          map.setView(ll, Math.max(map.getZoom(), 15));
+        } catch {}
+      });
+      els.overlayList.appendChild(div);
+    });
   }
 
   function drawWheel(items) {
@@ -403,6 +431,16 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
 
   function escapeHtml(s) {
     return s.replace(/[&<>"]+/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  }
+
+  function haversine(lat1, lon1, lat2, lon2) {
+    const toRad = (d) => d * Math.PI / 180;
+    const R = 6371000; // meters
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat/2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
   }
 
   function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
@@ -555,6 +593,15 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
         if (els.keyword) els.keyword.value = kw;
         handleSearch();
       });
+    });
+  }
+  if (els.presetSelect) {
+    els.presetSelect.addEventListener('change', () => {
+      const v = els.presetSelect.value || '';
+      if (v && els.keyword) {
+        els.keyword.value = v;
+        handleSearch();
+      }
     });
   }
   els.spin.addEventListener('click', startSpin);
