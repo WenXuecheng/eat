@@ -191,7 +191,11 @@ function Galaxy(container, options = {}) {
   const targetMouseActive = 0.0;
   let smoothMouseActive = 0.0;
 
-  const { Renderer, Program, Mesh, Color, Triangle } = ogl;
+  const oglLib = (typeof ogl !== 'undefined' ? ogl : (typeof OGL !== 'undefined' ? OGL : null));
+  if (!oglLib) {
+    throw new Error('OGL library not loaded');
+  }
+  const { Renderer, Program, Mesh, Color, Triangle } = oglLib;
 
   const renderer = new Renderer({
     alpha: transparent,
