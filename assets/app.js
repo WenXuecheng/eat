@@ -598,7 +598,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
         const flashIdx = centerIdx; // first segment index
         if (cells[flashIdx]) {
           cells[flashIdx].classList.add('active','flash');
-          setTimeout(() => { try { cells[flashIdx].classList.remove('flash'); } catch {} }, 5 * 320);
+          setTimeout(() => { try { cells[flashIdx].classList.remove('flash'); } catch {} }, 5 * 800 + 200);
         }
       } catch {}
       if (chosen) showSelection(chosen);
