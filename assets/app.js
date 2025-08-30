@@ -37,7 +37,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
   let currentCenter = { lat: 55.751244, lng: 37.618423 };
   let restaurants = []; // current result set
   let markers = [];
-  const DEFAULT_RADIUS = 2000; // meters
+  const DEFAULT_RADIUS = 1000; // meters
   let lastSearchTotal = null; // API reported total results if available
 
   // Spinner state
@@ -426,7 +426,8 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       ctx.save();
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = '#0e1320';
+      // Use a more prominent label color on the wheel
+      ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 13px system-ui, -apple-system, Segoe UI';
       const label = truncate(items[i].name, 18);
       // optional guide line
