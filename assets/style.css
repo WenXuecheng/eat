@@ -135,6 +135,20 @@ body {
   .rb-btn::before { animation: none; }
 }
 
+/* Scroll Stack effect for results list */
+.rb-ss { position: relative; overflow: auto; }
+.rb-ss .rb-ss-item {
+  position: sticky;
+  top: 6px;
+  z-index: calc(200 - var(--i, 0));
+  transform: translateY(calc(var(--i, 0) * var(--ss-gap, 8px)));
+  will-change: transform;
+  transition: transform 220ms ease;
+}
+.rb-ss::-webkit-scrollbar { width: 8px; height: 8px; }
+.rb-ss::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 8px; }
+.rb-ss::-webkit-scrollbar-track { background: transparent; }
+
 /* Gradual Blur (Reactbits style) */
 .rb-gb {
   --gb-blur-from: 8px;

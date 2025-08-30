@@ -333,9 +333,10 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       dist: haversine(center.lat, center.lng, it.lat, it.lng)
     })).sort((a, b) => a.dist - b.dist).slice(0, 15);
     els.overlayList.innerHTML = '';
+    els.overlayList.classList.add('rb-ss');
     items.forEach(({ it, dist }) => {
       const div = document.createElement('div');
-      div.className = 'overlay-item';
+      div.className = 'overlay-item rb-ss-item';
       const km = dist >= 1000 ? (dist / 1000).toFixed(2) + ' km' : Math.round(dist) + ' m';
       div.innerHTML = `<div class="name">${escapeHtml(it.name)}</div><div class="addr">${escapeHtml(it.address || '')}<span class="dist">${km}</span></div>`;
       div.addEventListener('click', () => {
@@ -347,6 +348,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       els.overlayList.appendChild(div);
     });
     applyGradualBlur(Array.from(els.overlayList.children));
+    applyScrollStack(els.overlayList);
   }
 
   // Inside-IIFE helpers so they can access `els`
@@ -719,6 +721,15 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
         const delay = idx * 60;
         setTimeout(() => { el.classList.add('is-visible'); }, delay);
       } catch {}
+    });
+  }
+
+  // Scroll Stack enhancer: set index variable for sticky stacking
+  function applyScrollStack(container) {
+    if (!container) return;
+    const kids = Array.from(container.children);
+    kids.forEach((el, i) => {
+      try { el.style.setProperty('--i', String(i)); } catch {}
     });
   }
 
