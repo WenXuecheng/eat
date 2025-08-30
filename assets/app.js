@@ -549,8 +549,9 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     const c = els.resultsGrid;
     const baseLen = Math.max(1, shuffleState.items.length);
     const current = ((autoScroll.offset % autoScroll.segHeight) + autoScroll.segHeight) % autoScroll.segHeight;
-    const targetIndex = Math.floor(Math.random() * baseLen);
-    const targetTop = targetIndex * cellStepPx;
+    const finalIndex = Math.floor(Math.random() * baseLen);
+    shuffleState.finalIndex = finalIndex;
+    const targetTop = finalIndex * cellStepPx;
     const loops = 6; // faster apparent spin
     // align to center line (cell center on center line)
     const centerY = (els.resultsGrid ? els.resultsGrid.clientHeight : cellStepPx) / 2;
@@ -590,14 +591,14 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       autoScroll.offset = alignedVis;
       if (resultsTrack) resultsTrack.style.transform = `translate3d(0, ${-autoScroll.offset}px, 0)`;
       finalOffset = alignedVis;
-      const chosen = shuffleState.items[centerIdx] || shuffleState.items[0];
+      const chosen = shuffleState.items[finalIndex] || shuffleState.items[0];
       // Highlight and flash the visual cell at center (compute by visible index)
       try {
         const cells = resultsTrack ? Array.from(resultsTrack.children) : [];
         cells.forEach(el => el.classList.remove('active','flash'));
         const visIdx = Math.floor(finalOffset / cellStepPx); // top visible row index within first segment height
         const centerRowIdx = (visIdx + Math.floor(centerY / cellStepPx)) % cells.length;
-        const flashIdx = centerRowIdx;
+        const flashIdx = centerRowIdx; // already aligned to chosen row at center
         if (cells[flashIdx]) {
           cells[flashIdx].classList.add('active','flash');
           setTimeout(() => { try { cells[flashIdx].classList.remove('flash'); } catch {} }, 5 * 800 + 200);
