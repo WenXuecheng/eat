@@ -1075,8 +1075,8 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
   // No wheel initialization
   initMap();
 
-  // Init custom wheel UI
-  initCustomWheelEls();
+  // Init custom wheel UI if defined in this module (guarded)
+  try { if (typeof initCustomWheelEls === 'function') initCustomWheelEls(); } catch {}
 
   // Utility: take up to n random unique items
   function sampleMax(arr, n) {
