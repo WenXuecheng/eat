@@ -25,6 +25,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     presetSelect: document.getElementById('presetSelect'),
     panelStats: document.getElementById('panelStats'),
     resultsGrid: document.getElementById('resultsGrid'),
+    resultsCenter: document.getElementById('resultsCenter'),
     presetBtns: Array.from(document.querySelectorAll('[data-kw]')),
     start: document.getElementById('btn-start'),
     selection: document.getElementById('selection'),
@@ -366,6 +367,12 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     shuffleState.items = list.slice();
     if (els.start) els.start.disabled = list.length === 0;
     initInfiniteAutoScroll(els.resultsGrid, list.length);
+    // Adjust center highlight height to row height
+    try {
+      if (els.resultsCenter && cellStepPx) {
+        els.resultsCenter.style.height = Math.max(36, cellStepPx - 4) + 'px';
+      }
+    } catch {}
   }
 
   // Auto-scrolling state for infinite menu
@@ -545,7 +552,10 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     const targetIndex = Math.floor(Math.random() * baseLen);
     const targetTop = targetIndex * cellStepPx;
     const loops = 6; // faster apparent spin
-    const deltaWithin = (targetTop - current + autoScroll.segHeight) % autoScroll.segHeight;
+    // align to center line (cell center on center line)
+    const centerY = (els.resultsGrid ? els.resultsGrid.clientHeight : cellStepPx) / 2;
+    const targetVis = (targetTop + cellStepPx / 2 - centerY + autoScroll.segHeight) % autoScroll.segHeight;
+    const deltaWithin = (targetVis - current + autoScroll.segHeight) % autoScroll.segHeight;
     const totalDelta = loops * autoScroll.segHeight + deltaWithin;
 
     const duration = 8000; // 8s
@@ -564,18 +574,20 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
         requestAnimationFrame(animate);
       } else {
         // Snap to target offset
-        autoScroll.offset = targetTop;
-        if (resultsTrack) resultsTrack.style.transform = `translate3d(0, ${-autoScroll.offset}px, 0)`;
-        // Highlight final cell (first segment index)
-        const cells = resultsTrack ? Array.from(resultsTrack.children) : [];
-        cells.forEach(el => el.classList.remove('active'));
-        if (cells[targetIndex]) cells[targetIndex].classList.add('active');
-        // Finish
-        shuffleState.running = false;
-        if (els.start) els.start.disabled = false;
-        const chosen = shuffleState.items[targetIndex] || shuffleState.items[0];
-        if (chosen) showSelection(chosen);
-      }
+      autoScroll.offset = targetVis;
+      if (resultsTrack) resultsTrack.style.transform = `translate3d(0, ${-autoScroll.offset}px, 0)`;
+      // Highlight final cell (first segment index)
+      const cells = resultsTrack ? Array.from(resultsTrack.children) : [];
+      cells.forEach(el => el.classList.remove('active'));
+      // Finish
+      shuffleState.running = false;
+      if (els.start) els.start.disabled = false;
+      // Determine which item is under center line
+      const finalOffset = ((autoScroll.offset % autoScroll.segHeight) + autoScroll.segHeight) % autoScroll.segHeight;
+      const idxAtCenter = Math.floor((finalOffset + centerY) / cellStepPx) % baseLen;
+      const chosen = shuffleState.items[idxAtCenter] || shuffleState.items[0];
+      if (chosen) showSelection(chosen);
+    }
     }
     requestAnimationFrame(animate);
   }

@@ -98,7 +98,7 @@ body {
 .selection a { color: var(--rb-primary); text-decoration: none; }
 
 /* Results panel replacing the wheel */
-.results-panel { display: flex; flex-direction: column; gap: 10px; }
+.results-panel { display: flex; flex-direction: column; gap: 10px; position: relative; }
 .results-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -148,6 +148,20 @@ body {
 .results-cell .dist { color: var(--rb-muted); font-size: 12px; margin-left: 6px; }
 .results-cell .rate { color: color-mix(in srgb, var(--rb-primary) 85%, #fff); font-weight: 600; margin-left: 6px; }
 .results-cell .sched { color: var(--rb-muted); margin-right: 6px; }
+
+/* Fixed center highlighter for slot-machine selection */
+.results-center {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 56px; /* overridden by JS */
+  border-radius: 10px;
+  pointer-events: none;
+  border: 1px dashed color-mix(in srgb, var(--rb-primary) 60%, transparent);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+}
 .results-cell.active {
   border-color: color-mix(in srgb, var(--rb-primary) 60%, var(--rb-border));
   background: linear-gradient(180deg, color-mix(in srgb, var(--rb-primary) 12%, hsl(230 18% 13%)), hsl(230 18% 12%));
