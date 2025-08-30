@@ -182,13 +182,34 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
         let items = (data && data.result && Array.isArray(data.result.items) && data.result.items) || [];
         // If empty, attempt swapping point order as a defensive fallback
         if (!items.length) {
+          // 2nd attempt: swap point order defensively
           const params2 = new URLSearchParams(params);
-          params2.set('point', `${center.lat},${center.lng}`); // try lat,lon
+          params2.set('point', `${center.lat},${center.lng}`);
           return fetch(`${endpoint}?${params2.toString()}`, { mode: 'cors' })
             .then((res2) => res2.ok ? res2.json() : Promise.reject(new Error('HTTP ' + res2.status)))
             .then((data2) => {
               const items2 = (data2 && data2.result && data2.result.items) || [];
-              return items2.map(map2GisItem).filter(Boolean);
+              if (items2 && items2.length) return items2.map(map2GisItem).filter(Boolean);
+
+              // 3rd attempt: keyword-only search (no point/radius) per user-provided working example
+              const rawKw = (els.keyword && els.keyword.value || '').trim();
+              const addrText = (els.address && els.address.value || '').trim();
+              const qOnly = [rawKw || keyword || 'food', addrText].filter(Boolean).join(' ');
+              const p3 = new URLSearchParams({
+                key: apiKey,
+                q: qOnly,
+                type: 'branch',
+                page_size: '50',
+                sort: 'relevance',
+                fields: 'items.point,items.address,items.contact_groups,items.rating,items.links,items.external_content',
+                locale: 'ru_RU'
+              });
+              return fetch(`${endpoint}?${p3.toString()}`, { mode: 'cors' })
+                .then((r3) => r3.ok ? r3.json() : Promise.reject(new Error('HTTP ' + r3.status)))
+                .then((d3) => {
+                  const items3 = (d3 && d3.result && d3.result.items) || [];
+                  return items3.map(map2GisItem).filter(Boolean);
+                });
             })
             .catch(() => items.map(map2GisItem).filter(Boolean));
         }
@@ -198,8 +219,17 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
         // Fallback to JSONP if fetch/CORS fails
         const jsonpParams = Object.fromEntries(params.entries());
         return jsonpPreferDG(endpoint, jsonpParams).then((res) => {
-          const items = (res && res.result && res.result.items) || [];
-          return items.map(map2GisItem).filter(Boolean);
+          let items = (res && res.result && res.result.items) || [];
+          if (items && items.length) return items.map(map2GisItem).filter(Boolean);
+          // JSONP fallback for keyword-only query as last resort
+          const rawKw = (els.keyword && els.keyword.value || '').trim();
+          const addrText = (els.address && els.address.value || '').trim();
+          const qOnly = [rawKw || keyword || 'food', addrText].filter(Boolean).join(' ');
+          const p3 = { key: apiKey, q: qOnly, type: 'branch', page_size: '50', sort: 'relevance', fields: 'items.point,items.address,items.contact_groups,items.rating,items.links,items.external_content', locale: 'ru_RU' };
+          return jsonpPreferDG(endpoint, p3).then((res2) => {
+            const items2 = (res2 && res2.result && res2.result.items) || [];
+            return items2.map(map2GisItem).filter(Boolean);
+          });
         });
       });
   }
