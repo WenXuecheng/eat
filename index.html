@@ -25,28 +25,13 @@
           <label for="apiKey">2GIS API Key</label>
           <input id="apiKey" type="text" placeholder="粘贴你的 2GIS API Key" />
           <button id="btn-save-key" title="保存到本地">保存Key</button>
-          <label class="demo-toggle" title="无 Key 或测试时使用示例数据">
-            <input id="demo-mode" type="checkbox" /> 使用示例数据
-          </label>
         </div>
         <div class="control-row">
-          <label for="radius">半径（米）</label>
-          <input id="radius" type="number" min="100" step="100" value="1000" />
-          <label for="category">类别</label>
-          <select id="category">
-            <option value="restaurant" selected>附近饭店</option>
-            <option value="cafe">咖啡</option>
-            <option value="bar">酒吧</option>
-            <option value="hotel">酒店</option>
-            <option value="park">公园</option>
-            <option value="mall">商场</option>
-            <option value="supermarket">超市</option>
-            <option value="custom">自定义</option>
-          </select>
-          <input id="customQuery" class="hidden" type="text" placeholder="输入自定义关键词（中文将自动翻译为俄语）" />
+          <label for="keyword">关键词</label>
+          <input id="keyword" type="text" placeholder="输入要搜索的关键词（中文将自动翻译为俄语）" />
           <button id="btn-search">搜索</button>
         </div>
-        <div class="help">提示：保存 API Key 后，取消“使用示例数据”即可拉取真实数据。</div>
+        <div class="help">提示：请先保存 2GIS API Key。只支持真实数据，不再提供示例数据与半径选择。</div>
       </section>
 
       <section class="layout">

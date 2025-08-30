@@ -15,21 +15,19 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
     geolocate: document.getElementById('btn-geolocate'),
     apiKey: document.getElementById('apiKey'),
     saveKey: document.getElementById('btn-save-key'),
-    radius: document.getElementById('radius'),
-    category: document.getElementById('category'),
-    customQuery: document.getElementById('customQuery'),
+    keyword: document.getElementById('keyword'),
     search: document.getElementById('btn-search'),
-    demo: document.getElementById('demo-mode'),
     wheel: document.getElementById('wheel'),
     spin: document.getElementById('btn-spin'),
     selection: document.getElementById('selection'),
     map: document.getElementById('map'),
   };
 
-  let map, centerMarker, radiusCircle;
+  let map, centerMarker;
   let currentCenter = { lat: 31.2304, lng: 121.4737 }; // default: Shanghai
   let restaurants = []; // current result set
   let markers = [];
+  const DEFAULT_RADIUS = 1500; // meters
 
   // Spinner state
   const ctx = els.wheel.getContext('2d');
@@ -66,21 +64,8 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
       centerMarker.on('dragend', () => {
         const ll = centerMarker.getLatLng();
         currentCenter = { lat: ll.lat, lng: ll.lng };
-        drawRadius();
       });
-
-      drawRadius();
     });
-  }
-
-  function drawRadius() {
-    const r = Number(els.radius.value || 1000);
-    if (radiusCircle) {
-      map.removeLayer(radiusCircle);
-    }
-    radiusCircle = DG.circle([currentCenter.lat, currentCenter.lng], r, {
-      color: '#4f8cff', weight: 1, fillOpacity: 0.08
-    }).addTo(map);
   }
 
   function useGeolocation() {
@@ -94,7 +79,6 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
         DG.then(() => {
           map.setView([currentCenter.lat, currentCenter.lng], 15);
           centerMarker.setLatLng([currentCenter.lat, currentCenter.lng]);
-          drawRadius();
         });
         // Fill address field by reverse geocoding
         reverseGeocode(currentCenter).then((addr) => {
@@ -109,23 +93,22 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
     );
   }
 
-  // NOTE: For real 2GIS data, implement this using 2GIS Directory API (Catalog API) JSONP.
-  async function loadRestaurants(center, radiusMeters) {
-    if (!els.demo.checked) {
-      const key = (els.apiKey && els.apiKey.value ? els.apiKey.value : window.TWO_GIS_API_KEY) || '';
-      if (key) {
-        try {
-          const keyword = getQueryKeyword();
-          const list = await loadRestaurants2GIS(center, radiusMeters, key, keyword);
-          if (Array.isArray(list) && list.length) {
-            return list;
-          }
-        } catch (e) {
-          console.warn('2GIS 加载失败，切换到示例数据', e);
-        }
-      }
+  // Load restaurants strictly via 2GIS (no demo fallback)
+  async function loadRestaurants(center) {
+    const key = (els.apiKey && els.apiKey.value ? els.apiKey.value : window.TWO_GIS_API_KEY) || '';
+    if (!key) {
+      alert('请先在页面中保存 2GIS API Key');
+      return [];
     }
-    return generateDemoRestaurants(center, radiusMeters, 12);
+    const keyword = getQueryKeyword();
+    try {
+      const list = await loadRestaurants2GIS(center, DEFAULT_RADIUS, key, keyword);
+      return Array.isArray(list) ? list : [];
+    } catch (e) {
+      console.warn('2GIS 加载失败', e);
+      alert('从 2GIS 获取数据失败，请检查关键词和 API Key');
+      return [];
+    }
   }
 
   // 2GIS Directory API via JSONP
@@ -155,22 +138,8 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
   }
 
   function getQueryKeyword() {
-    const cat = els.category ? els.category.value : 'restaurant';
-    if (cat === 'custom' && els.customQuery) {
-      const q = (els.customQuery.value || '').trim();
-      if (q) return q;
-    }
-    // Map categories to CN keywords and English fallbacks
-    switch (cat) {
-      case 'restaurant': return '餐厅';
-      case 'cafe': return '咖啡';
-      case 'bar': return '酒吧';
-      case 'hotel': return '酒店';
-      case 'park': return '公园';
-      case 'mall': return '商场';
-      case 'supermarket': return '超市';
-      default: return '餐厅';
-    }
+    const v = (els.keyword && els.keyword.value || '').trim();
+    return v || '餐厅';
   }
 
   // Basic zh->ru keyword translation for 2GIS search
@@ -223,33 +192,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
     return { id: String(it.id || it.hash || it.branch_id || Math.random()), name: it.name || '未命名', lat, lng, address, rating, url, phones };
   }
 
-  function generateDemoRestaurants(center, radiusMeters, count) {
-    const out = [];
-    for (let i = 0; i < count; i++) {
-      const p = randomPointInCircle(center, radiusMeters);
-      out.push({
-        id: 'demo-' + i,
-        name: `演示餐厅 ${i + 1}`,
-        lat: p.lat,
-        lng: p.lng,
-        address: '示例地址 · 仅用于演示',
-        rating: (Math.random() * 2 + 3).toFixed(1),
-        url: '#',
-        phones: []
-      });
-    }
-    return out;
-  }
-
-  function randomPointInCircle(center, radiusMeters) {
-    // Random distance and bearing
-    const r = radiusMeters * Math.sqrt(Math.random());
-    const t = Math.random() * Math.PI * 2;
-    // Convert meters to degrees approximately
-    const dx = (r * Math.cos(t)) / 111320; // meters per degree lon at equator ~111.32km
-    const dy = (r * Math.sin(t)) / 110540; // meters per degree lat ~110.54km
-    return { lat: center.lat + dy, lng: center.lng + dx };
-  }
+  // removed demo generators
 
   function updateMapMarkers(list) {
     // Clear old
@@ -417,7 +360,6 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
           DG.then(() => {
             map.setView([p.lat, p.lng], 15);
             centerMarker.setLatLng([p.lat, p.lng]);
-            drawRadius();
           });
         }
       } catch (e) {
@@ -427,10 +369,9 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
       }
     }
 
-    const r = Number(els.radius.value || 1000);
-    restaurants = await loadRestaurants(currentCenter, r);
+    restaurants = await loadRestaurants(currentCenter);
     if (!restaurants.length) {
-      alert('未找到附近饭店');
+      alert('未找到符合关键词的地点，请更换关键词再试');
       return;
     }
     // Limit to max 12 randomly sampled items for the wheel
@@ -470,18 +411,6 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
   }
   els.search.addEventListener('click', handleSearch);
   els.spin.addEventListener('click', startSpin);
-  els.radius.addEventListener('change', drawRadius);
-  if (els.category && els.customQuery) {
-    const onCatChange = () => {
-      if (els.category.value === 'custom') {
-        els.customQuery.classList.remove('hidden');
-      } else {
-        els.customQuery.classList.add('hidden');
-      }
-    };
-    els.category.addEventListener('change', onCatChange);
-    onCatChange();
-  }
 
   // Initial draw
   // Prefill saved key
