@@ -9,54 +9,69 @@
     <script src="https://maps.api.2gis.ru/2.0/loader.js?pkg=full"></script>
   </head>
   <body>
-    <header class="app-header">
-      <h1>今天吃啥？</h1>
-      <div class="sub">输入地址 + 半径，随机转盘帮你选饭店</div>
+    <header class="rb-header">
+      <div class="rb-container rb-header-inner">
+        <div class="rb-brand">
+          <span class="rb-logo">🍽️</span>
+          <span class="rb-brand-text">今天吃啥</span>
+        </div>
+        <div class="rb-brand-sub">随机转盘 · 2GIS 数据</div>
+      </div>
     </header>
 
-    <main class="app">
-      <section class="controls">
-        <div class="control-row">
-          <label for="address">我的地址</label>
-          <input id="address" type="text" placeholder="例如：上海市黄浦区南京东路300号" />
-          <button id="btn-geolocate" title="使用当前位置">使用定位</button>
+    <main class="rb-container rb-stack-lg">
+      <section class="rb-card rb-stack-md">
+        <div class="rb-grid rb-grid-col-3 rb-grid-gap">
+          <div class="rb-field">
+            <label class="rb-label" for="address">我的地址</label>
+            <div class="rb-row rb-row-gap-sm">
+              <input id="address" class="rb-input" type="text" placeholder="例如：上海市黄浦区南京东路300号" />
+              <button id="btn-geolocate" class="rb-btn rb-btn-ghost" title="使用当前位置">使用定位</button>
+            </div>
+          </div>
+
+          <div class="rb-field">
+            <label class="rb-label" for="apiKey">2GIS API Key</label>
+            <div class="rb-row rb-row-gap-sm">
+              <input id="apiKey" class="rb-input" type="text" placeholder="粘贴你的 2GIS API Key" />
+              <button id="btn-save-key" class="rb-btn rb-btn-outline" title="保存到本地">保存Key</button>
+            </div>
+          </div>
+
+          <div class="rb-field">
+            <label class="rb-label" for="keyword">关键词</label>
+            <div class="rb-row rb-row-gap-sm">
+              <input id="keyword" class="rb-input" type="text" placeholder="输入关键词（中文会自动翻译为俄语）" />
+              <button id="btn-search" class="rb-btn rb-btn-primary">搜索</button>
+            </div>
+          </div>
         </div>
-        <div class="control-row">
-          <label for="apiKey">2GIS API Key</label>
-          <input id="apiKey" type="text" placeholder="粘贴你的 2GIS API Key" />
-          <button id="btn-save-key" title="保存到本地">保存Key</button>
-        </div>
-        <div class="control-row">
-          <label for="keyword">关键词</label>
-          <input id="keyword" type="text" placeholder="输入要搜索的关键词（中文将自动翻译为俄语）" />
-          <button id="btn-search">搜索</button>
-        </div>
-        <div class="help">提示：请先保存 2GIS API Key。只支持真实数据，不再提供示例数据与半径选择。</div>
+        <div class="rb-help">提示：请先保存 2GIS API Key，然后输入关键词并搜索。</div>
       </section>
 
-      <section class="layout">
-        <div class="left">
+      <section class="rb-grid rb-grid-col-2 rb-grid-gap rb-layout">
+        <div class="rb-card rb-card-fill">
           <div id="map" class="map"></div>
         </div>
-        <div class="right">
-          <div class="wheel-wrap">
-            <canvas id="wheel" width="420" height="420"></canvas>
-            <div class="pointer">▼</div>
+        <div class="rb-stack-md">
+          <div class="rb-card rb-center">
+            <div class="wheel-wrap">
+              <canvas id="wheel" width="420" height="420"></canvas>
+              <div class="pointer">▼</div>
+            </div>
+            <div class="wheel-actions">
+              <button id="btn-spin" class="rb-btn rb-btn-success" disabled>开始转</button>
+            </div>
           </div>
-          <div class="wheel-actions">
-            <button id="btn-spin" disabled>开始转</button>
-          </div>
-          <div id="selection" class="selection hidden"></div>
+          <div id="selection" class="selection hidden rb-card"></div>
         </div>
       </section>
     </main>
 
-    <footer class="app-footer">
-      <div>
-        地图由 2GIS Maps API 提供。实际餐厅数据需要 2GIS Directory API Key（前端 JSONP 方式调用）。
-      </div>
-      <div class="foot-notes">
-        可在页面中粘贴并保存 Key；或在 assets/app.js 顶部直接填写常量。
+    <footer class="rb-footer">
+      <div class="rb-container rb-footer-inner">
+        <div class="rb-muted">地图由 2GIS Maps API 提供。需要 2GIS Directory API Key。</div>
+        <div class="rb-muted">你也可以在 assets/app.js 顶部直接设置 Key。</div>
       </div>
     </footer>
 
