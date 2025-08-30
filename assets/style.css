@@ -59,8 +59,8 @@ input[type="text"], input[type="number"] {
 .left { min-width: 0; }
 .right { display: flex; flex-direction: column; gap: 12px; }
 
-.wheel-wrap { position: relative; width: 420px; height: 420px; margin: 0 auto; }
-#wheel { width: 420px; height: 420px; background: radial-gradient(circle at 50% 50%, #0e1320 65%, #0e1320 65%), transparent; border-radius: 50%; display: block; border: 1px solid #252c44; }
+.wheel-wrap { position: relative; width: 100%; max-width: 420px; margin: 0 auto; }
+#wheel { width: 100%; background: radial-gradient(circle at 50% 50%, #0e1320 65%, #0e1320 65%), transparent; border-radius: 50%; display: block; border: 1px solid #252c44; }
 .pointer { position: absolute; top: -2px; left: 50%; transform: translateX(-50%); font-size: 20px; color: var(--warn); text-shadow: 0 2px 6px rgba(0,0,0,0.6); }
 .wheel-actions { display: flex; justify-content: center; }
 .wheel-actions button { background: var(--ok); padding: 10px 16px; border-radius: 10px; }
@@ -78,7 +78,18 @@ input[type="text"], input[type="number"] {
 @media (max-width: 1100px) {
   .layout { grid-template-columns: 1fr; }
   .right { order: -1; }
-  .wheel-wrap { width: 360px; height: 360px; }
-  #wheel { width: 360px; height: 360px; }
 }
 
+@media (max-width: 768px) {
+  .controls { padding: 10px; }
+  .control-row { flex-direction: column; align-items: stretch; }
+  input[type="text"], input[type="number"] { min-width: 0; width: 100%; }
+  .map { height: 50vh; min-height: 340px; }
+  .pointer { font-size: 18px; }
+}
+
+@media (max-width: 480px) {
+  body { background: radial-gradient(900px 450px at 10% -10%, #1a2540 0%, var(--bg) 40%, var(--bg) 100%); }
+  .map { height: 45vh; min-height: 300px; }
+  .wheel-actions button { padding: 12px 18px; }
+}

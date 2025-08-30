@@ -175,8 +175,8 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
   }
 
   function drawWheel(items) {
-    const cw = els.wheel.width;
-    const ch = els.wheel.height;
+    const cw = Math.max(els.wheel.clientWidth, 1);
+    const ch = Math.max(els.wheel.clientHeight, 1);
     const cx = cw / 2, cy = ch / 2;
     const r = Math.min(cx, cy) - 6;
     ctx.clearRect(0, 0, cw, ch);
@@ -372,6 +372,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
   els.radius.addEventListener('change', drawRadius);
 
   // Initial draw
+  setupResponsiveWheel();
   drawWheel([]);
   initMap();
 
@@ -385,5 +386,25 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
       [a[i], a[j]] = [a[j], a[i]];
     }
     return a.slice(0, n);
+  }
+
+  // Responsive canvas sizing with device pixel ratio
+  function setupResponsiveWheel() {
+    const resizeWheel = () => {
+      const dpr = window.devicePixelRatio || 1;
+      const wrap = els.wheel.parentElement; // .wheel-wrap
+      const maxPx = 420;
+      const cssSize = Math.max(220, Math.min(maxPx, wrap.clientWidth || maxPx));
+      els.wheel.style.width = cssSize + 'px';
+      els.wheel.style.height = cssSize + 'px';
+      els.wheel.width = Math.floor(cssSize * dpr);
+      els.wheel.height = Math.floor(cssSize * dpr);
+      const ctx2 = els.wheel.getContext('2d');
+      ctx2.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawWheel(spinState.items);
+    };
+    window.addEventListener('resize', resizeWheel);
+    window.addEventListener('orientationchange', resizeWheel);
+    resizeWheel();
   }
 })();
