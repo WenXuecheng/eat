@@ -94,6 +94,11 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
           centerMarker.setLatLng([currentCenter.lat, currentCenter.lng]);
           drawRadius();
         });
+        reverseGeocode(currentCenter.lat, currentCenter.lng).then((addr) => {
+          if (addr) {
+            els.address.value = addr;
+          }
+        }).catch(() => {});
       },
       (err) => {
         console.warn('Geolocation error', err);
@@ -103,22 +108,19 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
     );
   }
 
-  // NOTE: For real 2GIS data, implement this using 2GIS Directory API (Catalog API) JSONP.
   async function loadRestaurants(center, radiusMeters) {
-    if (!els.demo.checked) {
-      const key = (els.apiKey && els.apiKey.value ? els.apiKey.value : window.TWO_GIS_API_KEY) || '';
-      if (key) {
-        try {
-          const list = await loadRestaurants2GIS(center, radiusMeters, key);
-          if (Array.isArray(list) && list.length) {
-            return list;
-          }
-        } catch (e) {
-          console.warn('2GIS 加载失败，切换到示例数据', e);
-        }
-      }
+    const key = (els.apiKey && els.apiKey.value ? els.apiKey.value : window.TWO_GIS_API_KEY) || '';
+    if (els.demo.checked && !key) {
+      return generateDemoRestaurants(center, radiusMeters, 12);
     }
-    return generateDemoRestaurants(center, radiusMeters, 12);
+    if (!key) {
+      throw new Error('缺少 2GIS API Key');
+    }
+    const list = await loadRestaurants2GIS(center, radiusMeters, key);
+    if (!Array.isArray(list) || !list.length) {
+      throw new Error('未获取到 2GIS 数据');
+    }
+    return list;
   }
 
   // 2GIS Directory API via JSONP
@@ -361,7 +363,12 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
     }
 
     const r = Number(els.radius.value || 1000);
-    restaurants = await loadRestaurants(currentCenter, r);
+    try {
+      restaurants = await loadRestaurants(currentCenter, r);
+    } catch (e) {
+      alert(e.message || '2GIS 数据加载失败');
+      return;
+    }
     if (!restaurants.length) {
       alert('未找到附近饭店');
       return;
@@ -375,6 +382,18 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
     spinState.rotation = 0;
     drawWheel(wheelItems);
     els.spin.disabled = false;
+  }
+
+  // Reverse geocoding via OpenStreetMap Nominatim
+  async function reverseGeocode(lat, lng) {
+    const url = new URL('https://nominatim.openstreetmap.org/reverse');
+    url.searchParams.set('format', 'json');
+    url.searchParams.set('lat', String(lat));
+    url.searchParams.set('lon', String(lng));
+    const res = await fetch(url.toString(), { headers: { 'Accept-Language': 'zh-CN' } });
+    if (!res.ok) throw new Error('Reverse geocode HTTP ' + res.status);
+    const data = await res.json();
+    return data.display_name || '';
   }
 
   // Simple geocoding via OpenStreetMap Nominatim (no key). Replace with 2GIS geocoder if desired.
@@ -397,7 +416,15 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
       const v = (els.apiKey && els.apiKey.value || '').trim();
       window.TWO_GIS_API_KEY = v;
       try { localStorage.setItem('two_gis_api_key', v); } catch {}
+      els.demo.checked = false;
       alert('API Key 已保存到本地');
+    });
+  }
+  if (els.apiKey) {
+    els.apiKey.addEventListener('input', () => {
+      if ((els.apiKey.value || '').trim()) {
+        els.demo.checked = false;
+      }
     });
   }
   els.search.addEventListener('click', handleSearch);
@@ -411,6 +438,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
     if (saved) {
       window.TWO_GIS_API_KEY = saved;
       if (els.apiKey) els.apiKey.value = saved;
+      if (els.demo) els.demo.checked = false;
     }
   } catch {}
   setupResponsiveWheel();

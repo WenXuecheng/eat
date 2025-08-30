@@ -13,12 +13,13 @@
 html, body { height: 100%; }
 body {
   margin: 0;
+  min-height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   color: var(--text);
   background: radial-gradient(1200px 600px at 10% -10%, #1a2540 0%, var(--bg) 35%, var(--bg) 100%);
 }
 
-.app-header { padding: 20px 20px 0; }
+.app-header { padding: 20px 20px 0; background: linear-gradient(to bottom, var(--bg), rgba(15,17,21,0)); }
 .app-header h1 { margin: 0; font-size: 28px; }
 .app-header .sub { color: var(--muted); margin-top: 4px; }
 
@@ -72,7 +73,7 @@ input[type="text"], input[type="number"] {
 .selection .row { display: flex; gap: 14px; align-items: center; margin: 6px 0; }
 .selection a { color: var(--accent); text-decoration: none; }
 
-.app-footer { color: var(--muted); font-size: 12px; padding: 8px 20px 24px; }
+.app-footer { color: var(--muted); font-size: 12px; padding: 8px 20px 24px; background: linear-gradient(to top, var(--bg), rgba(15,17,21,0)); }
 .foot-notes { margin-top: 4px; }
 
 @media (max-width: 1100px) {
