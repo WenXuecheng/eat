@@ -7,7 +7,9 @@
 */
 
 // Optional: provide your 2GIS Directory API key here or via devtools: window.TWO_GIS_API_KEY = '...'
-window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
+// For debugging per user request, we set a temporary default key.
+// NOTE: Remove/override this in production.
+window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332369cc356';
 
 (function () {
   const els = {
@@ -155,81 +157,76 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
     }
   }
 
-  // 2GIS Directory API: prefer CORS fetch; fallback to JSONP
+  // 2GIS Directory API: paginate nearby; fallback to keyword-only; no forced type filter
   function loadRestaurants2GIS(center, radiusMeters, apiKey, keyword) {
     const endpoint = 'https://catalog.api.2gis.com/3.0/items';
-    const params = new URLSearchParams({
-      key: apiKey,
-      q: translateZhToRu(keyword) || 'ресторан',
-      type: 'branch',
-      // point expects lon,lat (x,y)
-      point: `${center.lng},${center.lat}`,
-      radius: String(Math.max(100, Math.min(3000, Math.floor(radiusMeters)))),
-      page_size: '50',
-      sort: 'distance',
-      fields: 'items.point,items.address,items.contact_groups,items.rating,items.links,items.external_content',
-      locale: 'ru_RU'
-    });
+    const radius = String(Math.max(100, Math.min(3000, Math.floor(radiusMeters))));
+    const qNearby = translateZhToRu(keyword) || 'restaurant';
 
-    // Try fetch with CORS first
-    const url = `${endpoint}?${params.toString()}`;
-    return fetch(url, { mode: 'cors' })
-      .then((res) => {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.json();
-      })
-      .then((data) => {
-        let items = (data && data.result && Array.isArray(data.result.items) && data.result.items) || [];
-        // If empty, attempt swapping point order as a defensive fallback
-        if (!items.length) {
-          // 2nd attempt: swap point order defensively
-          const params2 = new URLSearchParams(params);
-          params2.set('point', `${center.lat},${center.lng}`);
-          return fetch(`${endpoint}?${params2.toString()}`, { mode: 'cors' })
-            .then((res2) => res2.ok ? res2.json() : Promise.reject(new Error('HTTP ' + res2.status)))
-            .then((data2) => {
-              const items2 = (data2 && data2.result && data2.result.items) || [];
-              if (items2 && items2.length) return items2.map(map2GisItem).filter(Boolean);
+    // Demo key limits; safe defaults even for paid keys
+    const DEMO_PAGE_SIZE_MAX = 10;
+    const DEMO_PAGE_MAX = 5;
 
-              // 3rd attempt: keyword-only search (no point/radius) per user-provided working example
-              const rawKw = (els.keyword && els.keyword.value || '').trim();
-              const addrText = (els.address && els.address.value || '').trim();
-              const qOnly = [rawKw || keyword || 'food', addrText].filter(Boolean).join(' ');
-              const p3 = new URLSearchParams({
-                key: apiKey,
-                q: qOnly,
-                type: 'branch',
-                page_size: '50',
-                sort: 'relevance',
-                fields: 'items.point,items.address,items.contact_groups,items.rating,items.links,items.external_content',
-                locale: 'ru_RU'
-              });
-              return fetch(`${endpoint}?${p3.toString()}`, { mode: 'cors' })
-                .then((r3) => r3.ok ? r3.json() : Promise.reject(new Error('HTTP ' + r3.status)))
-                .then((d3) => {
-                  const items3 = (d3 && d3.result && d3.result.items) || [];
-                  return items3.map(map2GisItem).filter(Boolean);
-                });
-            })
-            .catch(() => items.map(map2GisItem).filter(Boolean));
-        }
-        return items.map(map2GisItem).filter(Boolean);
+    async function fetchPage(params) {
+      const url = `${endpoint}?${params.toString()}`;
+      // console.debug('2GIS GET', url);
+      const res = await fetch(url, { mode: 'cors' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    }
+
+    async function nearbyPaginated() {
+      const all = [];
+      for (let page = 1; page <= DEMO_PAGE_MAX; page++) {
+        const p = new URLSearchParams({
+          key: apiKey,
+          q: qNearby,
+          point: `${center.lng},${center.lat}`,
+          radius,
+          page: String(page),
+          page_size: String(DEMO_PAGE_SIZE_MAX),
+          fields: 'items.name,items.point,items.address,items.contact_groups,items.rating,items.links,items.external_content'
+        });
+        const data = await fetchPage(p);
+        const items = (data && data.result && data.result.items) || [];
+        if (!items.length) break;
+        all.push(...items);
+        // If we know total and already have enough, we could break early
+      }
+      return all;
+    }
+
+    async function keywordOnly() {
+      const rawKw = (els.keyword && els.keyword.value || '').trim();
+      const addrText = (els.address && els.address.value || '').trim();
+      const qOnly = [rawKw || keyword || 'food', addrText].filter(Boolean).join(' ');
+      const p = new URLSearchParams({
+        key: apiKey,
+        q: qOnly,
+        page: '1',
+        page_size: String(DEMO_PAGE_SIZE_MAX),
+        fields: 'items.name,items.point,items.address,items.contact_groups,items.rating,items.links,items.external_content'
+      });
+      const data = await fetchPage(p);
+      return (data && data.result && data.result.items) || [];
+    }
+
+    // Try nearby first; if empty, fallback to keyword-only
+    return nearbyPaginated()
+      .then(async (items) => {
+        if (items && items.length) return items.map(map2GisItem).filter(Boolean);
+        const items2 = await keywordOnly();
+        return items2.map(map2GisItem).filter(Boolean);
       })
-      .catch(() => {
-        // Fallback to JSONP if fetch/CORS fails
-        const jsonpParams = Object.fromEntries(params.entries());
-        return jsonpPreferDG(endpoint, jsonpParams).then((res) => {
-          let items = (res && res.result && res.result.items) || [];
-          if (items && items.length) return items.map(map2GisItem).filter(Boolean);
-          // JSONP fallback for keyword-only query as last resort
-          const rawKw = (els.keyword && els.keyword.value || '').trim();
-          const addrText = (els.address && els.address.value || '').trim();
-          const qOnly = [rawKw || keyword || 'food', addrText].filter(Boolean).join(' ');
-          const p3 = { key: apiKey, q: qOnly, type: 'branch', page_size: '50', sort: 'relevance', fields: 'items.point,items.address,items.contact_groups,items.rating,items.links,items.external_content', locale: 'ru_RU' };
-          return jsonpPreferDG(endpoint, p3).then((res2) => {
-            const items2 = (res2 && res2.result && res2.result.items) || [];
-            return items2.map(map2GisItem).filter(Boolean);
-          });
+      .catch(async () => {
+        // Fallback to one-shot JSONP keyword-only if fetch/CORS fails
+        const rawKw = (els.keyword && els.keyword.value || '').trim();
+        const addrText = (els.address && els.address.value || '').trim();
+        const qOnly = [rawKw || keyword || 'food', addrText].filter(Boolean).join(' ');
+        const params = { key: apiKey, q: qOnly, page: '1', page_size: String(DEMO_PAGE_SIZE_MAX), fields: 'items.name,items.point,items.address,items.contact_groups,items.rating,items.links,items.external_content' };
+        return jsonpPreferDG(endpoint, params).then((res) => {
+          const items = (res && res.result && res.result.items) || [];
+          return items.map(map2GisItem).filter(Boolean);
         });
       });
   }
@@ -482,15 +479,29 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
     els.spin.disabled = false;
   }
 
-  // Simple geocoding via OpenStreetMap Nominatim (no key). Replace with 2GIS geocoder if desired.
+  // Prefer geocoding via 2GIS Catalog when API key is available; fallback to Nominatim
   async function geocodeAddress(address) {
+    const key = (els.apiKey && els.apiKey.value ? els.apiKey.value : window.TWO_GIS_API_KEY) || '';
+    if (key) {
+      const endpoint = 'https://catalog.api.2gis.com/3.0/items';
+      const p = new URLSearchParams({ key, q: address, fields: 'items.point,items.address' });
+      const res = await fetch(`${endpoint}?${p.toString()}`, { mode: 'cors' });
+      if (!res.ok) throw new Error('Geocode HTTP ' + res.status);
+      const data = await res.json();
+      const it = data && data.result && data.result.items && data.result.items[0];
+      const point = it && it.point;
+      if (point && typeof point.lat === 'number' && typeof point.lon === 'number') {
+        return { lat: point.lat, lng: point.lon };
+      }
+      // If 2GIS returns nothing for the address, fall back to Nominatim below
+    }
     const url = new URL('https://nominatim.openstreetmap.org/search');
     url.searchParams.set('format', 'json');
     url.searchParams.set('q', address);
     url.searchParams.set('limit', '1');
-    const res = await fetch(url.toString(), { headers: { 'Accept-Language': 'zh-CN' } });
-    if (!res.ok) throw new Error('Geocode HTTP ' + res.status);
-    const arr = await res.json();
+    const res2 = await fetch(url.toString(), { headers: { 'Accept-Language': 'zh-CN' } });
+    if (!res2.ok) throw new Error('Geocode HTTP ' + res2.status);
+    const arr = await res2.json();
     if (!arr.length) return null;
     return { lat: parseFloat(arr[0].lat), lng: parseFloat(arr[0].lon) };
   }
