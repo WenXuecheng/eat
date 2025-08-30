@@ -237,11 +237,12 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
 
   function getQueryKeywordEnglish() {
     const raw = (els.keyword && els.keyword.value || '').trim();
-    if (!raw) return 'restaurant';
+    if (!raw) return 'fastfood';
     const low = raw.toLowerCase();
-    const known = ['restaurant','hotel','cafe','bar','subway','bus stop','bus station'];
+    const known = ['fastfood','restaurant','hotel','cafe','bar','subway','bus stop','bus station'];
     if (known.includes(low)) return low;
     const map = [
+      [/快餐/, 'fastfood'],
       [/饭店|餐厅|美食|吃饭|馆子|餐馆/, 'restaurant'],
       [/酒店|宾馆/, 'hotel'],
       [/咖啡|咖啡厅|咖啡店/, 'cafe'],
@@ -251,7 +252,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     ];
     for (const [re, en] of map) { if (re.test(raw)) return en; }
     for (const k of known) { if (low.includes(k)) return k; }
-    return 'restaurant';
+    return 'fastfood';
   }
 
   // Basic zh->ru keyword translation for 2GIS search
