@@ -582,20 +582,23 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       // Finish
       shuffleState.running = false;
       if (els.start) els.start.disabled = false;
-      // Determine which item is under center line
-      const finalOffset = ((autoScroll.offset % autoScroll.segHeight) + autoScroll.segHeight) % autoScroll.segHeight;
-      const idxAtCenter = Math.floor((finalOffset + centerY) / cellStepPx) % baseLen;
-      const chosen = shuffleState.items[idxAtCenter] || shuffleState.items[0];
-      // Highlight and flash the visual cell at center
+      // Determine which item is under center line (round to nearest row)
+      let finalOffset = ((autoScroll.offset % autoScroll.segHeight) + autoScroll.segHeight) % autoScroll.segHeight;
+      const centerIdx = ((Math.round((finalOffset + centerY - cellStepPx / 2) / cellStepPx)) % baseLen + baseLen) % baseLen;
+      // Snap offset exactly so chosen row center aligns to center line
+      const alignedVis = ((centerIdx * cellStepPx + (cellStepPx / 2 - centerY)) % autoScroll.segHeight + autoScroll.segHeight) % autoScroll.segHeight;
+      autoScroll.offset = alignedVis;
+      if (resultsTrack) resultsTrack.style.transform = `translate3d(0, ${-autoScroll.offset}px, 0)`;
+      finalOffset = alignedVis;
+      const chosen = shuffleState.items[centerIdx] || shuffleState.items[0];
+      // Highlight and flash the visual cell at center (first segment index)
       try {
         const cells = resultsTrack ? Array.from(resultsTrack.children) : [];
         cells.forEach(el => el.classList.remove('active','flash'));
-        const visIdx = Math.floor(finalOffset / cellStepPx); // index of top visible row in first segment
-        const centerRowIdx = visIdx + Math.floor(centerY / cellStepPx); // approximate center row index in first segment
-        const flashIdx = centerRowIdx % cells.length;
+        const flashIdx = centerIdx; // first segment index
         if (cells[flashIdx]) {
           cells[flashIdx].classList.add('active','flash');
-          setTimeout(() => { try { cells[flashIdx].classList.remove('flash'); } catch {} }, 5 * 300);
+          setTimeout(() => { try { cells[flashIdx].classList.remove('flash'); } catch {} }, 5 * 320);
         }
       } catch {}
       if (chosen) showSelection(chosen);
