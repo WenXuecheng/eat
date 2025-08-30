@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>今天吃啥 · 2GIS 转盘选饭店</title>
+    <link rel="stylesheet" href="assets/style.css" />
+    <!-- 2GIS Maps API (Leaflet-based). If .ru domain is blocked in your region, switch to .com -->
+    <script src="https://maps.api.2gis.ru/2.0/loader.js?pkg=full"></script>
+  </head>
+  <body>
+    <header class="app-header">
+      <h1>今天吃啥？</h1>
+      <div class="sub">输入地址 + 半径，随机转盘帮你选饭店</div>
+    </header>
+
+    <main class="app">
+      <section class="controls">
+        <div class="control-row">
+          <label for="address">我的地址</label>
+          <input id="address" type="text" placeholder="例如：上海市黄浦区南京东路300号" />
+          <button id="btn-geolocate" title="使用当前位置">使用定位</button>
+        </div>
+        <div class="control-row">
+          <label for="radius">半径（米）</label>
+          <input id="radius" type="number" min="100" step="100" value="1000" />
+          <button id="btn-search">搜索饭店</button>
+          <label class="demo-toggle" title="无 2GIS API Key 时使用示例数据">
+            <input id="demo-mode" type="checkbox" /> 使用示例数据
+          </label>
+        </div>
+        <div class="help">提示：如需真实数据，请配置 2GIS Directory API Key（见下方说明）。</div>
+      </section>
+
+      <section class="layout">
+        <div class="left">
+          <div id="map" class="map"></div>
+        </div>
+        <div class="right">
+          <div class="wheel-wrap">
+            <canvas id="wheel" width="420" height="420"></canvas>
+            <div class="pointer">▼</div>
+          </div>
+          <div class="wheel-actions">
+            <button id="btn-spin" disabled>开始转</button>
+          </div>
+          <div id="selection" class="selection hidden"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <div>
+        地图由 2GIS Maps API 提供。实际餐厅数据需要 2GIS Directory API Key（前端 JSONP 方式调用）。
+      </div>
+      <div class="foot-notes">
+        在浏览器控制台设置 window.TWO_GIS_API_KEY = '你的Key'，或在 assets/app.js 顶部填写常量即可。
+      </div>
+    </footer>
+
+    <script src="assets/app.js"></script>
+  </body>
+  </html>
+
