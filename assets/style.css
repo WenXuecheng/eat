@@ -91,6 +91,28 @@ body {
 .wheel-actions { display: flex; justify-content: center; margin-top: 10px; }
 .wheel-actions { flex-wrap: wrap; gap: 8px; }
 
+/* Custom wheel result emphasis */
+#cw-result {
+  font-size: 18px;
+  line-height: 1.2;
+}
+#cw-result .cw-value {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 24px;
+  font-weight: 800;
+  color: color-mix(in srgb, var(--rb-primary) 85%, #fff);
+  text-shadow: 0 2px 10px rgba(0, 102, 255, 0.45);
+}
+.cw-pop {
+  animation: cw-pop-kf 600ms cubic-bezier(.2,.8,.2,1);
+}
+@keyframes cw-pop-kf {
+  0% { transform: scale(0.96); opacity: 0.6; }
+  40% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 /* Custom wheel table */
 .cw-table-wrap { max-height: 320px; overflow: auto; }
 .cw-table { width: 100%; border-collapse: collapse; font-size: 14px; }

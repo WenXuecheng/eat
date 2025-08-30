@@ -88,13 +88,20 @@
     function step(ts){ const t=Math.min(1,(ts-start)/duration); const k=easeOutCubic(t); state.angle=current+total*k; draw(); if(t<1) requestAnimationFrame(step); else { state.spinning=false; const chosen=state.items[idx]; setResult('结果：'+(chosen.text||`#${idx+1}`)); } }
     requestAnimationFrame(step);
   }
-  function setResult(text){ if (els.result) els.result.textContent = text; }
+  function setResult(value){
+    if (!els.result) return;
+    const safe = escapeHtml(value);
+    els.result.innerHTML = '结果：<span class="cw-value">' + safe + '</span>';
+    // pop animation
+    els.result.classList.remove('cw-pop');
+    void els.result.offsetWidth;
+    els.result.classList.add('cw-pop');
+  }
   function escapeHtml(s){ const str=(s==null)?'':String(s); return str.replace(/[&<>\"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
   // init
-  state.items = load(); rebuildTable(); draw(); setResult('结果：—');
+  state.items = load(); rebuildTable(); draw(); setResult('—');
   els.spin && els.spin.addEventListener('click', spin);
   els.reset && els.reset.addEventListener('click', ()=>{ state.items = load().slice(0,8); rebuildTable(); draw(); setResult('结果：—'); save(); });
   els.add && els.add.addEventListener('click', ()=>{ state.items.push({ color: COLORS[state.items.length%COLORS.length], text: '' }); rebuildTable(); draw(); save(); });
 })();
-
