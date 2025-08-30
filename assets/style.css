@@ -69,6 +69,8 @@ body {
 .rb-help { color: var(--rb-muted); font-size: 12px; }
 .hidden { display: none !important; }
 .rb-presets { margin-top: 8px; }
+.rb-presets { flex-direction: column; align-items: flex-start; }
+.rb-presets .rb-input { margin-top: 6px; max-width: 260px; }
 .rb-btn-chip { padding: 6px 10px; font-size: 12px; border-radius: 999px; }
 
 /* Map and Wheel */
