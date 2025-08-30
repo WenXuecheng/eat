@@ -346,6 +346,8 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     });
   }
 
+  
+
   function drawWheel(items) {
     const cw = Math.max(els.wheel.clientWidth, 1);
     const ch = Math.max(els.wheel.clientHeight, 1);
@@ -586,7 +588,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       alert('API Key 已保存（已关闭示例数据）');
     });
   }
-  els.search.addEventListener('click', handleSearch);
+  els.search.addEventListener('click', () => handleSearch());
   // Press Enter in keyword or address triggers search
   if (els.keyword) {
     els.keyword.addEventListener('keydown', (e) => {
