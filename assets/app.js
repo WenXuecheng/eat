@@ -586,6 +586,18 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       const finalOffset = ((autoScroll.offset % autoScroll.segHeight) + autoScroll.segHeight) % autoScroll.segHeight;
       const idxAtCenter = Math.floor((finalOffset + centerY) / cellStepPx) % baseLen;
       const chosen = shuffleState.items[idxAtCenter] || shuffleState.items[0];
+      // Highlight and flash the visual cell at center
+      try {
+        const cells = resultsTrack ? Array.from(resultsTrack.children) : [];
+        cells.forEach(el => el.classList.remove('active','flash'));
+        const visIdx = Math.floor(finalOffset / cellStepPx); // index of top visible row in first segment
+        const centerRowIdx = visIdx + Math.floor(centerY / cellStepPx); // approximate center row index in first segment
+        const flashIdx = centerRowIdx % cells.length;
+        if (cells[flashIdx]) {
+          cells[flashIdx].classList.add('active','flash');
+          setTimeout(() => { try { cells[flashIdx].classList.remove('flash'); } catch {} }, 5 * 300);
+        }
+      } catch {}
       if (chosen) showSelection(chosen);
     }
     }
