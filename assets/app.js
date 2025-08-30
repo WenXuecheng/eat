@@ -330,7 +330,10 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       const cell = document.createElement('div');
       cell.className = 'results-cell';
       const km = dist >= 1000 ? (dist / 1000).toFixed(2) + ' km' : Math.round(dist) + ' m';
-      cell.innerHTML = `<div class="name">${escapeHtml(it.name)}</div><div class="addr">${escapeHtml(it.address || '')}<span class="dist">${km}</span></div></div>`;
+      const rate = (typeof it.rating === 'number') ? (Number(it.rating).toFixed(1)) : '';
+      const sched = it.schedule ? `<span class=\"sched\">${escapeHtml(it.schedule)}</span> · ` : '';
+      const rateHtml = rate ? `<span class=\"rate\">⭐ ${escapeHtml(rate)}</span>` : '';
+      cell.innerHTML = `<div class=\"cell-inner\"><div class=\"name\">${escapeHtml(it.name)}${rateHtml}</div><div class=\"addr\">${sched}${escapeHtml(it.address || '')}<span class=\"dist\">${km}</span></div></div>`;
       cell.addEventListener('click', () => {
         try { map.setView([it.lat, it.lng], Math.max(map.getZoom(), 15)); } catch {}
         showSelection(it);
@@ -342,7 +345,10 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       const cell = document.createElement('div');
       cell.className = 'results-cell';
       const km = dist >= 1000 ? (dist / 1000).toFixed(2) + ' km' : Math.round(dist) + ' m';
-      cell.innerHTML = `<div class="name">${escapeHtml(it.name)}</div><div class="addr">${escapeHtml(it.address || '')}<span class="dist">${km}</span></div></div>`;
+      const rate = (typeof it.rating === 'number') ? (Number(it.rating).toFixed(1)) : '';
+      const sched = it.schedule ? `<span class=\"sched\">${escapeHtml(it.schedule)}</span> · ` : '';
+      const rateHtml = rate ? `<span class=\"rate\">⭐ ${escapeHtml(rate)}</span>` : '';
+      cell.innerHTML = `<div class=\"cell-inner\"><div class=\"name\">${escapeHtml(it.name)}${rateHtml}</div><div class=\"addr\">${sched}${escapeHtml(it.address || '')}<span class=\"dist\">${km}</span></div></div>`;
       cell.addEventListener('click', () => {
         try { map.setView([it.lat, it.lng], Math.max(map.getZoom(), 15)); } catch {}
         showSelection(it);
@@ -464,15 +470,38 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     return s.replace(/[&<>"]+/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   }
 
-  // Format schedule object from 2GIS into simple text
+  // Format schedule object from 2GIS into concise text (today's hours or a short text)
   function formatSchedule(s) {
     if (!s) return '';
     if (typeof s === 'string') return s;
     try {
-      // Common 2GIS schedule shape may include 'mon','tue'... or 'text' field
       if (s.text) return String(s.text);
-      // Fallback to compact JSON
-      return JSON.stringify(s);
+      // Try to pick today's day hours from common shapes
+      const daysMap = ['sun','mon','tue','wed','thu','fri','sat'];
+      const todayKey = daysMap[new Date().getDay()];
+      // Pattern A: { mon: [{from:'09:00',to:'18:00'}, ...], tue: [...] }
+      if (s[todayKey] && Array.isArray(s[todayKey]) && s[todayKey].length) {
+        const seg = s[todayKey][0];
+        const from = seg.from || seg.open || seg.start || seg.open_time;
+        const to = seg.to || seg.close || seg.end || seg.close_time;
+        if (from && to) return `${from} - ${to}`;
+      }
+      // Pattern B: { days: [{day:'mon', from:'', to:''}, ...] }
+      if (Array.isArray(s.days)) {
+        const seg = s.days.find(d => String(d.day).toLowerCase().includes(todayKey));
+        if (seg) {
+          const from = seg.from || seg.open || seg.start || seg.open_time;
+          const to = seg.to || seg.close || seg.end || seg.close_time;
+          if (from && to) return `${from} - ${to}`;
+        }
+      }
+      // Pattern C: { working_hours: [{from:'',to:''}] }
+      if (Array.isArray(s.working_hours) && s.working_hours.length) {
+        const seg = s.working_hours[0];
+        if (seg && seg.from && seg.to) return `${seg.from} - ${seg.to}`;
+      }
+      // As a last resort, avoid dumping JSON object
+      return '';
     } catch { return ''; }
   }
 

@@ -141,6 +141,8 @@ body {
 .results-cell .name { font-weight: 600; }
 .results-cell .addr { color: var(--rb-muted); font-size: 12px; }
 .results-cell .dist { color: var(--rb-muted); font-size: 12px; margin-left: 6px; }
+.results-cell .rate { color: color-mix(in srgb, var(--rb-primary) 85%, #fff); font-weight: 600; margin-left: 6px; }
+.results-cell .sched { color: var(--rb-muted); margin-right: 6px; }
 .results-cell.active {
   border-color: color-mix(in srgb, var(--rb-primary) 60%, var(--rb-border));
   background: linear-gradient(180deg, color-mix(in srgb, var(--rb-primary) 12%, hsl(230 18% 13%)), hsl(230 18% 12%));
