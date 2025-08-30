@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <title>2GIS — 地址附近场所可视化（饭店/酒店/咖啡厅等）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- 2GIS Maps JS -->
+  <script src="https://maps.api.2gis.ru/2.0/loader.js?pkg=full"></script>
+  <style>
+    :root { --border:#ececec; --muted:#666; --pill:#f5f5f5; --pill-border:#ddd; }
+    html,body { height:100%; }
+    body { margin:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial; }
+    header { padding: 10px 14px; border-bottom:1px solid var(--border); display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    header strong { margin-right: 6px; }
+    label { font-size:13px; color:#222; display:flex; gap:6px; align-items:center; }
+    input, button { padding:6px 10px; font-size:14px; }
+    input[type="number"] { width:100px; }
+    button { cursor:pointer; }
+    #app { display:grid; grid-template-columns: 380px 1fr; height: calc(100vh - 56px); }
+    #sidebar { border-right:1px solid var(--border); overflow:auto; display:flex; flex-direction:column; }
+    #map { width:100%; height:100%; }
+    .sec { padding:12px 12px 0 12px; }
+    .muted { color:var(--muted); font-size:12px; }
+    .addr { margin:4px 0 8px; font-size:13px; }
+    .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .pill { display:inline-block; font-size:12px; padding:2px 8px; background:var(--pill); border:1px solid var(--pill-border); border-radius:16px; }
+    .card { padding:10px 12px; border-bottom:1px solid #f5f5f5; cursor:pointer; }
+    .card h4 { margin:0 0 6px; font-size:15px; }
+    .small { font-size:12px; color:#333; }
+    .error { color:#b00020; padding:10px 12px; }
+    .hint { padding: 0 12px 8px 12px; }
+    .filters { padding: 10px 12px 14px 12px; border-top:1px solid var(--border); }
+    .chip { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; margin:6px 6px 0 0; background:#fff; border:1px solid #ddd; border-radius:18px; font-size:13px; cursor:pointer; }
+    .chip.active { border-color:#1677ff; box-shadow:0 0 0 2px rgba(22,119,255,.12) inset; }
+    .chip small { color:#666; }
+    .footer-space { height:10px; }
+
+    /* === 星级样式 === */
+    .stars { display:inline-block; font-size:13px; line-height:1; }
+    .star { display:inline-block; width:14px; text-align:center; }
+    .star.filled { color:#f7b500; }    /* 金色星 */
+    .star.half { color:#f7b500; }      /* 半星同色，用字符实现 */
+    .star.empty { color:#ccc; }
+    .rating-line { display:flex; gap:8px; align-items:center; margin:4px 0 2px; }
+    .rating-num { font-size:12px; color:#222; }
+    .rating-count { font-size:12px; color:#666; }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>附近场所可视化（2GIS）</strong>
+    <label>地址：
+      <input id="addrInput" size="28" value="Moskva Dovatora 9" />
+    </label>
+    <label>关键词：
+      <input id="qInput" size="12" value="restaurant" />
+    </label>
+    <label>半径(m)：
+      <input id="radiusInput" type="number" min="100" step="100" value="2000" />
+    </label>
+    <label>最大数量：
+      <input id="maxInput" type="number" min="1" max="200" step="1" value="50" />
+    </label>
+    <button id="searchBtn">搜索</button>
+    <span class="muted">可拖拽中心点，松手后自动刷新。</span>
+  </header>
+
+  <div id="app">
+    <aside id="sidebar">
+      <div class="sec">
+        <div class="muted">地址与坐标</div>
+        <div id="addrBlock" class="addr">—</div>
+        <div class="row">
+          <span class="pill" id="latPill">lat: —</span>
+          <span class="pill" id="lonPill">lon: —</span>
+          <span class="pill" id="countPill">结果：—</span>
+        </div>
+      </div>
+      <div class="hint muted">提示：结果按 2GIS 返回顺序展示；点列表可定位地图。</div>
+
+      <div class="sec">
+        <div class="muted">结果列表</div>
+      </div>
+      <div id="list"></div>
+
+      <div class="filters">
+        <div class="muted" style="margin-bottom:6px;">快捷筛选</div>
+        <div id="chipsRow">
+          <div class="chip" data-q="restaurant">🍽️ 饭店 <small>(restaurant)</small></div>
+          <div class="chip" data-q="hotel">🏨 酒店 <small>(hotel)</small></div>
+          <div class="chip" data-q="cafe">☕ 咖啡厅 <small>(cafe)</small></div>
+          <div class="chip" data-q="bar">🍺 酒吧 <small>(bar)</small></div>
+          <div class="chip" data-q="fastfood">🍔 快餐 <small>(fastfood)</small></div>
+        </div>
+      </div>
+      <div class="footer-space"></div>
+    </aside>
+
+    <main id="map"></main>
+  </div>
+
+  <script>
+    // === 配置 ===
+    const API_KEY = "63296a27-dfc8-48f6-837e-e332369cc356"; // 你的 2GIS catalog API key
+    const CATALOG_BASE = "https://catalog.api.2gis.com/3.0/items";
+
+    // 如果是 demo key，2GIS 限制：page_size<=10，page<=5（最多 50 条）
+    const DEMO_PAGE_SIZE_MAX = 10;
+    const DEMO_PAGE_MAX = 5;
+
+    // === DOM ===
+    const addrInput = document.getElementById("addrInput");
+    const qInput = document.getElementById("qInput");
+    const radiusInput = document.getElementById("radiusInput");
+    const maxInput = document.getElementById("maxInput");
+    const searchBtn = document.getElementById("searchBtn");
+    const addrBlock = document.getElementById("addrBlock");
+    const latPill = document.getElementById("latPill");
+    const lonPill = document.getElementById("lonPill");
+    const countPill = document.getElementById("countPill");
+    const listEl = document.getElementById("list");
+    const chipsRow = document.getElementById("chipsRow");
+
+    // === 地图对象 ===
+    let map, markersGroup, centerMarker, circle;
+    let lastCenterLatLng = null;
+
+    DG.then(function () {
+      map = DG.map("map", {
+        center: [55.751244, 37.618423],
+        zoom: 12
+      });
+      markersGroup = DG.featureGroup().addTo(map);
+
+      searchBtn.addEventListener("click", () => runSearch());
+      chipsRow.addEventListener("click", onChipClick);
+
+      runSearch();
+    });
+
+    function onChipClick(e) {
+      const chip = e.target.closest(".chip");
+      if (!chip) return;
+      const q = chip.getAttribute("data-q");
+      qInput.value = q;
+      Array.from(chipsRow.querySelectorAll(".chip")).forEach(c => c.classList.toggle("active", c === chip));
+
+      const radius = parseInt(radiusInput.value, 10) || 2000;
+      if (lastCenterLatLng) {
+        drawCircle(lastCenterLatLng, radius);
+        searchAround(lastCenterLatLng, q, radius);
+      } else {
+        runSearch();
+      }
+    }
+
+    async function runSearch(manualCenterLatLng) {
+      clearResults();
+
+      const addr = addrInput.value.trim();
+      const q = qInput.value.trim() || "restaurant";
+      const radius = parseInt(radiusInput.value, 10) || 2000;
+
+      try {
+        let center = manualCenterLatLng;
+
+        if (!center) {
+          const url1 = new URL(CATALOG_BASE);
+          url1.searchParams.set("q", addr);
+          url1.searchParams.set("fields", "items.point,items.address");
+          url1.searchParams.set("key", API_KEY);
+
+          const r1 = await fetch(url1.toString());
+          if (!r1.ok) throw new Error(`地址查询失败：HTTP ${r1.status}`);
+          const j1 = await r1.json();
+
+          const item = j1?.result?.items?.[0];
+          if (!item?.point?.lat || !item?.point?.lon) throw new Error("未找到该地址的坐标。");
+
+          const { lat, lon } = item.point;
+          const addressText = formatAddress(item.address) || addr;
+
+          addrBlock.innerText = addressText;
+          latPill.innerText = `lat: ${lat}`;
+          lonPill.innerText = `lon: ${lon}`;
+
+          center = DG.latLng(lat, lon);
+        } else {
+          latPill.innerText = `lat: ${center.lat.toFixed(6)}`;
+          lonPill.innerText = `lon: ${center.lng.toFixed(6)}`;
+        }
+
+        lastCenterLatLng = center;
+
+        if (centerMarker) map.removeLayer(centerMarker);
+
+        const yellowIcon = DG.divIcon({
+          className: "custom-yellow-icon",
+          html: '<div style="width:18px;height:18px;background:#FFD700;border-radius:50%;border:3px solid #333;box-shadow:0 0 0 2px rgba(255,215,0,0.25)"></div>',
+          iconSize: [18,18],
+          iconAnchor: [9,9],
+          popupAnchor: [0,-10]
+        });
+
+        centerMarker = DG.marker(center, { draggable: true, title: "中心点（可拖动）", icon: yellowIcon })
+          .addTo(map)
+          .bindPopup(`<b>中心点</b><br/><small>${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}</small>`);
+        centerMarker.on('dragend', async (e) => {
+          const ll = e.target.getLatLng();
+          lastCenterLatLng = ll;
+          const q2 = qInput.value.trim() || "restaurant";
+          const r2 = parseInt(radiusInput.value, 10) || 2000;
+          drawCircle(ll, r2);
+          await searchAround(ll, q2, r2);
+        });
+
+        map.setView(center, 15);
+        drawCircle(center, radius);
+        await searchAround(center, q, radius);
+
+      } catch (err) {
+        showError(err.message || String(err));
+      }
+    }
+
+    function drawCircle(centerLatLng, radius) {
+      if (circle) map.removeLayer(circle);
+      circle = DG.circle(centerLatLng, radius, {
+        color: "#0066ff",
+        weight: 2,
+        opacity: 0.9,
+        fillColor: "#99ccff",
+        fillOpacity: 0.2
+      }).addTo(map)
+        .bindPopup(`<b>搜索范围</b><br/><small>半径：${radius} m</small>`);
+    }
+
+    // —— 分页抓取，拼接结果 —— //
+    async function searchAround(centerLatLng, q, radius) {
+      // 只清除兴趣点，保留中心圆
+      markersGroup.clearLayers();
+
+      const lon = centerLatLng.lng;
+      const lat = centerLatLng.lat;
+
+      // 读取用户期望上限
+      let limit = parseInt(maxInput.value, 10);
+      if (!Number.isFinite(limit) || limit <= 0) limit = 50;
+      if (limit > 500) limit = 500; // 安全上限
+
+      // demo 限制
+      let pageSize = Math.min(limit, DEMO_PAGE_SIZE_MAX); // 10
+      let maxPages = DEMO_PAGE_MAX;                        // 5
+
+      const allItems = [];
+      let total = null;
+
+      for (let page = 1; page <= maxPages && allItems.length < limit; page++) {
+        const url2 = new URL(CATALOG_BASE);
+        url2.searchParams.set("q", q);
+        url2.searchParams.set("point", `${lon},${lat}`); // 注意顺序：lon,lat
+        url2.searchParams.set("radius", String(radius));
+        // === 增加 items.reviews 字段以获取评分与点评数 ===
+        url2.searchParams.set("fields", "items.name,items.address,items.point,items.schedule,items.reviews");
+        url2.searchParams.set("page", String(page));
+        url2.searchParams.set("page_size", String(pageSize));
+        url2.searchParams.set("key", API_KEY);
+
+        const r2 = await fetch(url2.toString());
+        if (!r2.ok) throw new Error(`附近查询失败：HTTP ${r2.status}`);
+        const j2 = await r2.json();
+
+        if (total == null) total = j2?.result?.total ?? null;
+
+        const items = j2?.result?.items || [];
+        if (items.length === 0) break;
+
+        for (const it of items) {
+          allItems.push(it);
+          if (allItems.length >= limit) break;
+        }
+
+        if (total != null && allItems.length >= total) break;
+      }
+
+      const itemsLimited = allItems.slice(0, limit);
+
+      countPill.innerText =
+        total != null ? `结果：${itemsLimited.length} / ${total}` : `结果：${itemsLimited.length}`;
+
+      listEl.innerHTML = "";
+      const bounds = DG.latLngBounds([centerLatLng]);
+      itemsLimited.forEach((it, idx) => {
+        const name = it.name || "未命名";
+        const p = it.point;
+        if (!p?.lat || !p?.lon) return;
+        const a = formatAddress(it.address);
+        const sched = formatSchedule(it.schedule);
+
+        // === 评分与点评数 ===
+        const rating = safeNum(it?.reviews?.rating);
+        const reviewCount = safeInt(it?.reviews?.review_count);
+
+        const ll = DG.latLng(p.lat, p.lon);
+
+        const m = DG.marker(ll, { title: name }).addTo(markersGroup);
+        m.bindPopup(`
+          <b>${escapeHtml(name)}</b><br/>
+          ${renderStarsHTML(rating)} ${renderRatingText(rating, reviewCount)}<br/>
+          ${a ? escapeHtml(a) + "<br/>" : ""}
+          ${sched ? `<small>${escapeHtml(sched)}</small><br/>` : ""}
+          <small>${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}</small>
+        `);
+
+        addListItem(idx + 1, name, a, sched, p.lat, p.lon, rating, reviewCount, () => {
+          map.setView(ll, 17);
+          m.openPopup();
+        });
+
+        if (centerLatLng.distanceTo(ll) <= radius) bounds.extend(ll);
+      });
+
+      map.fitBounds(bounds, { padding: [24, 24] });
+
+      const hitDemoCap = itemsLimited.length < limit && (limit > DEMO_PAGE_SIZE_MAX) && (total == null || total > itemsLimited.length);
+      if (hitDemoCap) {
+        const note = document.createElement("div");
+        note.className = "muted";
+        note.style.padding = "8px 12px";
+        note.innerText = "提示：已达到 demo key 的分页上限（最多 5 页 × 10 条 = 50 条）。如需更多结果，请使用正式订阅 key 或缩小半径与关键词。";
+        listEl.prepend(note);
+      }
+    }
+
+    // ——— 工具与 UI ———
+    function clearResults() {
+      countPill.innerText = "结果：—";
+      listEl.innerHTML = "";
+      if (markersGroup) markersGroup.clearLayers();
+    }
+
+    // === 更新：列表项增加星级评分与点评数 ===
+    function addListItem(idx, name, address, schedule, lat, lon, rating, reviewCount, onClick) {
+      const div = document.createElement("div");
+      div.className = "card";
+      div.innerHTML = `
+        <h4>${idx}. ${escapeHtml(name)}</h4>
+        <div class="rating-line">
+          ${renderStarsHTML(rating)}
+          <span class="rating-num">${Number.isFinite(rating) ? rating.toFixed(1) : '—'}</span>
+          <span class="rating-count">(${Number.isFinite(reviewCount) ? reviewCount : 0})</span>
+        </div>
+        ${address ? `<div class="small">${escapeHtml(address)}</div>` : ""}
+        ${schedule ? `<div class="small muted">${escapeHtml(schedule)}</div>` : ""}
+        <div class="small muted">${Number(lat).toFixed(6)}, ${Number(lon).toFixed(6)}</div>
+      `;
+      div.addEventListener("click", onClick);
+      listEl.appendChild(div);
+    }
+
+    function formatAddress(addr) {
+      if (!addr) return "";
+      const parts = [];
+      if (addr.full_name) parts.push(addr.full_name);
+      else if (addr.name) parts.push(addr.name);
+      else {
+        if (addr.city) parts.push(addr.city);
+        if (addr.street) parts.push(addr.street);
+        if (addr.house) parts.push(addr.house);
+      }
+      return parts.join(", ");
+    }
+
+    function formatSchedule(s) {
+      if (!s) return "";
+      if (typeof s === "string") return s;
+      try { return JSON.stringify(s); } catch { return ""; }
+    }
+
+    function showError(msg) {
+      listEl.innerHTML = `<div class="error">错误：${escapeHtml(msg)}</div>`;
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    // === 评分渲染工具 ===
+    function safeNum(v){ const n = Number(v); return Number.isFinite(n) ? n : NaN; }
+    function safeInt(v){ const n = parseInt(v, 10); return Number.isFinite(n) ? n : NaN; }
+
+    // 以 0.5 为步长渲染 5 星：★（满）、⯪（半，用字符近似）、☆（空）
+    function renderStarsHTML(rating) {
+      if (!Number.isFinite(rating)) {
+        return `<span class="stars">${'<span class="star empty">☆</span>'.repeat(5)}</span>`;
+      }
+      const full = Math.floor(rating);
+      const hasHalf = (rating - full) >= 0.25 && (rating - full) < 0.75; // 宽松半星窗口
+      const stars = [];
+      for (let i = 0; i < 5; i++) {
+        if (i < full) stars.push('<span class="star filled">★</span>');
+        else if (i === full && hasHalf) stars.push('<span class="star half">⯪</span>');
+        else stars.push('<span class="star empty">☆</span>');
+      }
+      return `<span class="stars">${stars.join('')}</span>`;
+    }
+
+    function renderRatingText(rating, count) {
+      if (!Number.isFinite(rating) && !Number.isFinite(count)) return `<small class="muted">暂无评分</small>`;
+      const r = Number.isFinite(rating) ? rating.toFixed(1) : '—';
+      const c = Number.isFinite(count) ? count : 0;
+      return `<small>${r} 分 · ${c} 条点评</small>`;
+    }
+  </script>
+</body>
+</html>

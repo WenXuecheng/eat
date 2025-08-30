@@ -83,6 +83,18 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
         // auto-refresh results on drag, like map.html
         handleSearch(currentCenter);
       });
+
+      // If address input has a preset value, center to it on load
+      const presetAddr = (els.address && els.address.value || '').trim();
+      if (presetAddr) {
+        geocodeAddress(presetAddr).then((p) => {
+          if (p) {
+            currentCenter = p;
+            map.setView([p.lat, p.lng], 15);
+            centerMarker.setLatLng([p.lat, p.lng]);
+          }
+        }).catch(() => {});
+      }
     });
   }
 
