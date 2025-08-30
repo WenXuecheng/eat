@@ -87,23 +87,21 @@
       </section>
 
       <section class="rb-grid rb-grid-col-2 rb-grid-gap rb-layout">
-        <div class="rb-card rb-card-fill">
-          <div id="map" class="map"></div>
-          <div class="map-overlay">
-            <div id="overlayStats" class="overlay-stats">结果：—</div>
-            <div id="overlayList" class="overlay-list"></div>
+        <div class="rb-stack-md">
+          <div class="rb-card rb-card-fill">
+            <div id="map" class="map"></div>
+          </div>
+          <div class="rb-card results-panel">
+            <div class="rb-row rb-row-gap-sm" style="justify-content: space-between; align-items:center;">
+              <div class="rb-muted" id="panelStats">结果：—</div>
+              <div class="wheel-actions">
+                <button id="btn-start" class="rb-btn rb-btn-success" disabled>开始</button>
+              </div>
+            </div>
+            <div id="resultsGrid" class="results-grid"></div>
           </div>
         </div>
         <div class="rb-stack-md">
-          <div class="rb-card rb-center">
-            <div class="wheel-wrap">
-              <canvas id="wheel" width="420" height="420"></canvas>
-              <div class="pointer">▼</div>
-            </div>
-            <div class="wheel-actions">
-              <button id="btn-spin" class="rb-btn rb-btn-success" disabled>开始转</button>
-            </div>
-          </div>
           <div id="selection" class="selection hidden rb-card"></div>
         </div>
       </section>
