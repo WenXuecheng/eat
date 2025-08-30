@@ -64,6 +64,21 @@
               <button class="rb-btn rb-btn-outline rb-btn-chip" data-kw="公园">公园</button>
             </div>
           </div>
+
+          <div class="rb-field">
+            <label class="rb-label" for="radius">半径（米）</label>
+            <div class="rb-row rb-row-gap-sm">
+              <select id="radius" class="rb-input">
+                <option value="500">500</option>
+                <option value="1000">1000</option>
+                <option value="1500" selected>1500</option>
+                <option value="2000">2000</option>
+                <option value="3000">3000</option>
+              </select>
+              <label class="rb-label" for="maxCount" style="margin-left:8px;">最大数量</label>
+              <input id="maxCount" class="rb-input" type="number" min="1" max="200" step="1" value="50" style="width:100px;" />
+            </div>
+          </div>
         </div>
         <div class="rb-help">提示：请先保存 2GIS API Key，然后输入关键词并搜索。</div>
       </section>

@@ -19,6 +19,8 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     saveKey: document.getElementById('btn-save-key'),
     keyword: document.getElementById('keyword'),
     search: document.getElementById('btn-search'),
+    radius: document.getElementById('radius'),
+    maxCount: document.getElementById('maxCount'),
     presetBtns: Array.from(document.querySelectorAll('[data-kw]')),
     wheel: document.getElementById('wheel'),
     spin: document.getElementById('btn-spin'),
@@ -26,7 +28,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     map: document.getElementById('map'),
   };
 
-  let map, centerMarker;
+  let map, centerMarker, searchCircle;
   let currentCenter = { lat: 31.2304, lng: 121.4737 }; // default: Shanghai
   let restaurants = []; // current result set
   let markers = [];
@@ -67,6 +69,8 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       centerMarker.on('dragend', () => {
         const ll = centerMarker.getLatLng();
         currentCenter = { lat: ll.lat, lng: ll.lng };
+        // auto-refresh results on drag, like index 2.html
+        handleSearch(currentCenter);
       });
     });
   }
@@ -148,8 +152,13 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     }
     const keyword = getQueryKeyword();
     try {
-      const list = await loadRestaurants2GIS(center, DEFAULT_RADIUS, key, keyword);
-      return Array.isArray(list) ? list : [];
+      const radius = getRadiusMeters();
+      const limit = getMaxCount();
+      const list = await loadRestaurants2GIS(center, radius, key, keyword);
+      const finalList = Array.isArray(list) ? list.slice(0, limit) : [];
+      // draw or update search circle
+      drawSearchCircle(center, radius);
+      return finalList;
     } catch (e) {
       console.warn('2GIS 加载失败', e);
       alert('从 2GIS 获取数据失败，请检查关键词和 API Key');
@@ -347,18 +356,25 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       ctx.strokeStyle = 'rgba(0,0,0,0.25)';
       ctx.stroke();
 
-      // label
+      // label outside the wheel for readability
       const mid = (start + end) / 2;
-      const rx = cx + Math.cos(mid) * (r * 0.68);
-      const ry = cy + Math.sin(mid) * (r * 0.68);
+      const rx = cx + Math.cos(mid) * (r + 16);
+      const ry = cy + Math.sin(mid) * (r + 16);
       ctx.save();
-      ctx.translate(rx, ry);
-      ctx.rotate(mid + Math.PI / 2);
       ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
       ctx.fillStyle = '#0e1320';
       ctx.font = 'bold 13px system-ui, -apple-system, Segoe UI';
       const label = truncate(items[i].name, 18);
-      drawTextWithShadow(ctx, label);
+      // optional guide line
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(mid) * r, cy + Math.sin(mid) * r);
+      ctx.lineTo(rx, ry);
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+      ctx.stroke();
+      // text
+      drawTextWithShadowAt(ctx, label, rx, ry);
       ctx.restore();
     }
 
@@ -378,6 +394,13 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     ctx.shadowOffsetY = 2;
     ctx.fillText(text, 0, 0);
     ctx.shadowColor = 'transparent';
+  }
+
+  function drawTextWithShadowAt(ctx, text, x, y) {
+    ctx.save();
+    ctx.translate(x, y);
+    drawTextWithShadow(ctx, text);
+    ctx.restore();
   }
 
   function truncate(s, n) {
@@ -443,24 +466,33 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     `;
   }
 
-  async function handleSearch() {
-    // Get center either from input address or current map marker
-    const addr = (els.address.value || '').trim();
-    if (addr) {
-      try {
-        const p = await geocodeAddress(addr);
-        if (p) {
-          currentCenter = p;
-          DG.then(() => {
-            map.setView([p.lat, p.lng], 15);
-            centerMarker.setLatLng([p.lat, p.lng]);
-          });
+  async function handleSearch(centerOverride) {
+    // If a center is provided (e.g., marker drag), skip address geocoding
+    if (!centerOverride) {
+      // Get center either from input address or current map marker
+      const addr = (els.address.value || '').trim();
+      if (addr) {
+        try {
+          const p = await geocodeAddress(addr);
+          if (p) {
+            currentCenter = p;
+            DG.then(() => {
+              map.setView([p.lat, p.lng], 15);
+              centerMarker.setLatLng([p.lat, p.lng]);
+            });
+          }
+        } catch (e) {
+          alert('地址解析失败，请尝试更换写法或使用定位');
+          console.warn('Geocode failed', e);
+          return;
         }
-      } catch (e) {
-        alert('地址解析失败，请尝试更换写法或使用定位');
-        console.warn('Geocode failed', e);
-        return;
       }
+    } else {
+      currentCenter = { lat: centerOverride.lat, lng: centerOverride.lng };
+      DG.then(() => {
+        map.setView([currentCenter.lat, currentCenter.lng], 15);
+        centerMarker.setLatLng([currentCenter.lat, currentCenter.lng]);
+      });
     }
 
     restaurants = await loadRestaurants(currentCenter);
@@ -468,11 +500,11 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       alert('未找到符合关键词的地点，请更换关键词再试');
       return;
     }
-    // Limit to max 12 randomly sampled items for the wheel
+    // Always show all results on the map, but only sample up to 12 for the wheel
     const MAX_WHEEL = 12;
     const wheelItems = sampleMax(restaurants, MAX_WHEEL);
 
-    updateMapMarkers(wheelItems);
+    updateMapMarkers(restaurants);
     spinState.items = wheelItems;
     spinState.rotation = 0;
     drawWheel(wheelItems);
@@ -606,8 +638,32 @@ function jsonp(url, params) {
     script.src = src;
     document.head.appendChild(script);
   });
-}
+  }
 
+  function getRadiusMeters() {
+    const v = (els.radius && parseInt(els.radius.value, 10)) || DEFAULT_RADIUS;
+    return Math.max(100, Math.min(3000, v));
+  }
+
+  function getMaxCount() {
+    const v = (els.maxCount && parseInt(els.maxCount.value, 10)) || 50;
+    return Math.max(1, Math.min(200, v));
+  }
+
+  function drawSearchCircle(center, radius) {
+    DG.then(() => {
+      try {
+        if (searchCircle) { try { map.removeLayer(searchCircle); } catch {} }
+        searchCircle = DG.circle([center.lat, center.lng], radius, {
+          color: '#0066ff',
+          weight: 2,
+          opacity: 0.9,
+          fillColor: '#99ccff',
+          fillOpacity: 0.15,
+        }).addTo(map);
+      } catch {}
+    });
+  }
 // Prefer DG.ajax.jsonp when available (from 2GIS Maps API)
 function jsonpPreferDG(url, params) {
   return new Promise((resolve, reject) => {
