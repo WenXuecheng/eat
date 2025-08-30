@@ -38,6 +38,10 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
   let markers = [];
   const DEFAULT_RADIUS = 1000; // meters
   let lastSearchTotal = null; // API reported total results if available
+  // Results track (for smooth translate-based scrolling)
+  let resultsTrack = null;
+  let cellStepPx = 0;
+  let segHeightPx = 0;
 
   // Shuffle state for results grid
   let shuffleState = { running: false, timer: null, items: [], lastIdx: -1 };
@@ -325,6 +329,10 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       dist: haversine(center.lat, center.lng, it.lat, it.lng)
     }));
     els.resultsGrid.innerHTML = '';
+    // Build track wrapper
+    resultsTrack = document.createElement('div');
+    resultsTrack.className = 'results-track';
+    els.resultsGrid.appendChild(resultsTrack);
     // Build first segment
     items.forEach(({ it, dist }) => {
       const cell = document.createElement('div');
@@ -338,7 +346,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
         try { map.setView([it.lat, it.lng], Math.max(map.getZoom(), 15)); } catch {}
         showSelection(it);
       });
-      els.resultsGrid.appendChild(cell);
+      resultsTrack.appendChild(cell);
     });
     // Duplicate for seamless loop
     items.forEach(({ it, dist }) => {
@@ -353,7 +361,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
         try { map.setView([it.lat, it.lng], Math.max(map.getZoom(), 15)); } catch {}
         showSelection(it);
       });
-      els.resultsGrid.appendChild(cell);
+      resultsTrack.appendChild(cell);
     });
     shuffleState.items = list.slice();
     if (els.start) els.start.disabled = list.length === 0;
@@ -361,13 +369,22 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
   }
 
   // Auto-scrolling state for infinite menu
-  const autoScroll = { running: false, raf: 0, last: 0, speed: 18, segHeight: 0, container: null, resumeTimer: 0, touchY: 0 };
+  const autoScroll = { running: false, raf: 0, last: 0, speed: 28, segHeight: 0, container: null, resumeTimer: 0, touchY: 0, offset: 0 };
   function initInfiniteAutoScroll(container, segCount) {
     try {
       autoScroll.container = container;
-      container.scrollTop = 0;
+      autoScroll.offset = 0;
       requestAnimationFrame(() => {
-        autoScroll.segHeight = Math.max(1, Math.floor(container.scrollHeight / 2));
+        const kids = resultsTrack ? Array.from(resultsTrack.children) : [];
+        if (kids.length > 1) {
+          cellStepPx = Math.max(1, kids[1].offsetTop - kids[0].offsetTop);
+        } else if (kids.length === 1) {
+          cellStepPx = Math.max(56, kids[0].offsetHeight + 8);
+        } else {
+          cellStepPx = 64;
+        }
+        autoScroll.segHeight = cellStepPx * segCount;
+        segHeightPx = autoScroll.segHeight;
         startAutoScroll();
       });
       // install wheel/touch handlers once
@@ -376,10 +393,9 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
           try {
             e.preventDefault();
             pauseAutoScroll();
-            const c = autoScroll.container;
-            c.scrollTop += e.deltaY;
-            if (c.scrollTop < 0) c.scrollTop += autoScroll.segHeight;
-            if (c.scrollTop >= autoScroll.segHeight) c.scrollTop -= autoScroll.segHeight;
+            autoScroll.offset += e.deltaY;
+            autoScroll.offset = ((autoScroll.offset % autoScroll.segHeight) + autoScroll.segHeight) % autoScroll.segHeight;
+            if (resultsTrack) resultsTrack.style.transform = `translate3d(0, ${-autoScroll.offset}px, 0)`;
             clearTimeout(autoScroll.resumeTimer);
             autoScroll.resumeTimer = setTimeout(resumeAutoScroll, 900);
           } catch {}
@@ -391,10 +407,9 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
             const y = e.touches[0].clientY;
             const dy = autoScroll.touchY ? (autoScroll.touchY - y) : 0;
             autoScroll.touchY = y;
-            const c = autoScroll.container;
-            c.scrollTop += dy;
-            if (c.scrollTop < 0) c.scrollTop += autoScroll.segHeight;
-            if (c.scrollTop >= autoScroll.segHeight) c.scrollTop -= autoScroll.segHeight;
+            autoScroll.offset += dy;
+            autoScroll.offset = ((autoScroll.offset % autoScroll.segHeight) + autoScroll.segHeight) % autoScroll.segHeight;
+            if (resultsTrack) resultsTrack.style.transform = `translate3d(0, ${-autoScroll.offset}px, 0)`;
             e.preventDefault();
             clearTimeout(autoScroll.resumeTimer);
             autoScroll.resumeTimer = setTimeout(resumeAutoScroll, 900);
@@ -416,9 +431,10 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       if (!autoScroll.running) return;
       const dt = Math.max(0, ts - autoScroll.last);
       autoScroll.last = ts;
-      const c = autoScroll.container;
-      c.scrollTop += (autoScroll.speed * dt) / 1000;
-      if (c.scrollTop >= autoScroll.segHeight) c.scrollTop -= autoScroll.segHeight;
+      autoScroll.offset += (autoScroll.speed * dt) / 1000;
+      autoScroll.offset = autoScroll.offset % (autoScroll.segHeight * 2);
+      const offsetVis = ((autoScroll.offset % autoScroll.segHeight) + autoScroll.segHeight) % autoScroll.segHeight;
+      if (resultsTrack) resultsTrack.style.transform = `translate3d(0, ${-offsetVis}px, 0)`;
       autoScroll.raf = requestAnimationFrame(tick);
     };
     autoScroll.raf = requestAnimationFrame(tick);
@@ -524,45 +540,36 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     // Pause auto scroll during slot animation
     pauseAutoScroll();
     const c = els.resultsGrid;
-    const cells = Array.from(c.children);
     const baseLen = Math.max(1, shuffleState.items.length);
-    if (!cells.length) { shuffleState.running = false; if (els.start) els.start.disabled = false; return; }
-
-    // Measure per-item step using top offsets
-    let stepPx = 0;
-    if (cells.length > 1) {
-      stepPx = Math.max(1, cells[1].offsetTop - cells[0].offsetTop);
-    } else {
-      stepPx = Math.max(56, cells[0].offsetHeight + 8);
-    }
-    const segHeight = autoScroll.segHeight || Math.max(stepPx * baseLen, 1);
-    const current = c.scrollTop % segHeight;
+    const current = ((autoScroll.offset % autoScroll.segHeight) + autoScroll.segHeight) % autoScroll.segHeight;
     const targetIndex = Math.floor(Math.random() * baseLen);
-    const targetTop = targetIndex * stepPx;
-    const loops = 6; // more full loops for faster apparent scroll
-    const deltaWithin = (targetTop - current + segHeight) % segHeight;
-    const totalDelta = loops * segHeight + deltaWithin;
+    const targetTop = targetIndex * cellStepPx;
+    const loops = 6; // faster apparent spin
+    const deltaWithin = (targetTop - current + autoScroll.segHeight) % autoScroll.segHeight;
+    const totalDelta = loops * autoScroll.segHeight + deltaWithin;
 
-    const duration = 8000; // 8s for longer suspense
+    const duration = 8000; // 8s
     const start = performance.now();
-    const startScroll = c.scrollTop;
+    const startOffset = current;
 
     function animate(ts) {
       if (!shuffleState.running) return;
       const t = Math.min(1, (ts - start) / duration);
       const k = easeOutCubic(t);
-      const pos = startScroll + totalDelta * k;
-      c.scrollTop = pos % (segHeight * 2); // keep within double segment
+      const pos = startOffset + totalDelta * k;
+      autoScroll.offset = pos % (autoScroll.segHeight * 2);
+      const offsetVis = ((autoScroll.offset % autoScroll.segHeight) + autoScroll.segHeight) % autoScroll.segHeight;
+      if (resultsTrack) resultsTrack.style.transform = `translate3d(0, ${-offsetVis}px, 0)`;
       if (t < 1) {
         requestAnimationFrame(animate);
       } else {
-        // Snap exactly to target within current segment
-        const finalPos = Math.floor((startScroll + totalDelta) % segHeight / stepPx) * stepPx;
-        c.scrollTop = (Math.floor((startScroll + totalDelta) / segHeight) % 2) * segHeight + targetTop;
-        // Highlight final cell in current visual segment
+        // Snap to target offset
+        autoScroll.offset = targetTop;
+        if (resultsTrack) resultsTrack.style.transform = `translate3d(0, ${-autoScroll.offset}px, 0)`;
+        // Highlight final cell (first segment index)
+        const cells = resultsTrack ? Array.from(resultsTrack.children) : [];
         cells.forEach(el => el.classList.remove('active'));
-        const highlightIdx = targetIndex; // first segment index
-        if (cells[highlightIdx]) cells[highlightIdx].classList.add('active');
+        if (cells[targetIndex]) cells[targetIndex].classList.add('active');
         // Finish
         shuffleState.running = false;
         if (els.start) els.start.disabled = false;
