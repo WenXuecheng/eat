@@ -94,6 +94,10 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
           centerMarker.setLatLng([currentCenter.lat, currentCenter.lng]);
           drawRadius();
         });
+        // Fill address field by reverse geocoding
+        reverseGeocode(currentCenter).then((addr) => {
+          if (addr && els.address) els.address.value = addr;
+        }).catch(() => {});
       },
       (err) => {
         console.warn('Geolocation error', err);
@@ -124,18 +128,26 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
   // 2GIS Directory API via JSONP
   function loadRestaurants2GIS(center, radiusMeters, apiKey) {
     const url = 'https://catalog.api.2gis.com/3.0/items';
-    const params = {
+    const baseParams = {
       key: apiKey,
-      q: 'restaurant', // 可调整：例如 'cafe', 'fast food', 本地语言等
+      q: 'restaurant', // 可调整：例如 'cafe', 'fast food'，或中文关键词
       type: 'branch',
-      point: `${center.lng},${center.lat}`,
       radius: Math.max(100, Math.min(3000, Math.floor(radiusMeters))),
       page_size: 50,
-      fields: 'items.point,items.address,items.contact_groups,items.rating,items.links,items.external_content'
+      fields: 'items.point,items.address,items.contact_groups,items.rating,items.links,items.external_content',
+      locale: 'zh_CN'
     };
-    return jsonp(url, params).then((res) => {
-      const items = (res && res.result && res.result.items) || [];
-      return items.map((it) => map2GisItem(it)).filter(Boolean);
+    const params1 = { ...baseParams, point: `${center.lat},${center.lng}` };
+    return jsonpPreferDG(url, params1).then((res) => {
+      let items = (res && res.result && res.result.items) || [];
+      if (!items.length) {
+        const params2 = { ...baseParams, point: `${center.lng},${center.lat}` };
+        return jsonpPreferDG(url, params2).then((res2) => {
+          items = (res2 && res2.result && res2.result.items) || [];
+          return items.map(map2GisItem).filter(Boolean);
+        });
+      }
+      return items.map(map2GisItem).filter(Boolean);
     });
   }
 
@@ -397,7 +409,8 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
       const v = (els.apiKey && els.apiKey.value || '').trim();
       window.TWO_GIS_API_KEY = v;
       try { localStorage.setItem('two_gis_api_key', v); } catch {}
-      alert('API Key 已保存到本地');
+      if (els.demo) els.demo.checked = false;
+      alert('API Key 已保存（已关闭示例数据）');
     });
   }
   els.search.addEventListener('click', handleSearch);
@@ -470,4 +483,29 @@ function jsonp(url, params) {
     script.src = src;
     document.head.appendChild(script);
   });
+}
+
+// Prefer DG.ajax.jsonp when available (from 2GIS Maps API)
+function jsonpPreferDG(url, params) {
+  return new Promise((resolve, reject) => {
+    try {
+      if (window.DG && DG.ajax && typeof DG.ajax.jsonp === 'function') {
+        DG.ajax.jsonp(url, params, (data) => resolve(data));
+        return;
+      }
+    } catch {}
+    jsonp(url, params).then(resolve).catch(reject);
+  });
+}
+
+// Reverse geocode lat/lng to address (Nominatim)
+async function reverseGeocode(ll) {
+  const url = new URL('https://nominatim.openstreetmap.org/reverse');
+  url.searchParams.set('format', 'json');
+  url.searchParams.set('lat', String(ll.lat));
+  url.searchParams.set('lon', String(ll.lng));
+  const res = await fetch(url.toString(), { headers: { 'Accept-Language': 'zh-CN' } });
+  if (!res.ok) return '';
+  const data = await res.json();
+  return (data && (data.display_name || data.name)) || '';
 }
