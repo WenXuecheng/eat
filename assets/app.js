@@ -209,7 +209,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
           radius,
           page: String(page),
           page_size: String(Math.min(DEMO_PAGE_SIZE_MAX, target - all.length) || 1),
-          fields: 'items.name,items.address,items.point,items.schedule'
+          fields: 'items.name,items.address,items.point,items.schedule,items.rating,items.reviews'
         });
         const data = await fetchPage(p);
         if (lastSearchTotal == null && data && data.result && typeof data.result.total === 'number') {
@@ -556,11 +556,18 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     els.selection.classList.remove('hidden');
     els.selection.classList.add('rb-shape-blur');
     els.selection.classList.remove('is-visible');
+    // Compute distance from current center
+    let distText = '';
+    try {
+      const d = haversine(currentCenter.lat, currentCenter.lng, item.lat, item.lng);
+      distText = d >= 1000 ? (d/1000).toFixed(2) + ' km' : Math.round(d) + ' m';
+    } catch {}
     els.selection.innerHTML = `
       <div class="sb-inner">
         <h3>结果：${escapeHtml(item.name)}</h3>
         ${item.rating ? `<div class="row"><span class="muted">评分：</span><span>${escapeHtml(String(item.rating))}${item.ratingCount ? `（${escapeHtml(String(item.ratingCount))}人评价）` : ''}</span></div>` : ''}
         <div class="row"><span class="muted">地址：</span><span>${escapeHtml(item.address || '暂无')}</span></div>
+        ${distText ? `<div class=\"row\"><span class=\"muted\">距离：</span><span>${distText}</span></div>` : ''}
         ${item.schedule ? `<div class="row"><span class="muted">营业时间：</span><span>${escapeHtml(item.schedule)}</span></div>` : ''}
         ${item.phones && item.phones.length ? `<div class="row"><span class="muted">电话：</span><span>${item.phones.map(escapeHtml).join(' / ')}</span></div>` : ''}
         ${item.url ? `<div class="row"><a href="${item.url}" target="_blank" rel="noopener">查看详情</a></div>` : ''}
