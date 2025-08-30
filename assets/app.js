@@ -69,6 +69,12 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
   }
 
   function useGeolocation() {
+    // Geolocation requires a secure context (HTTPS) or localhost.
+    if (!isSecureAllowed()) {
+      alert('定位需要在 HTTPS 或 localhost 环境下运行。\n请用本地服务器访问（例如 http://localhost:3000）或部署到支持 HTTPS 的站点。\n我将尝试使用 IP 近似定位。');
+      locateByIP();
+      return;
+    }
     if (!navigator.geolocation) {
       alert('当前浏览器不支持定位');
       return;
@@ -87,10 +93,46 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
       },
       (err) => {
         console.warn('Geolocation error', err);
-        alert('定位失败：' + err.message);
+        let reason = '未知错误';
+        if (err && typeof err.code === 'number') {
+          if (err.code === 1) reason = '权限被拒绝（请在浏览器地址栏右侧允许定位权限）';
+          else if (err.code === 2) reason = '位置不可用（请检查设备定位服务）';
+          else if (err.code === 3) reason = '定位超时（网络或信号较差）';
+        } else if (err && err.message) {
+          reason = err.message;
+        }
+        alert('定位失败：' + reason + '\n我将尝试使用 IP 近似定位。');
+        locateByIP();
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 }
     );
+  }
+
+  // Fallback: IP-based approximate location via ipapi.co JSONP
+  function locateByIP() {
+    const url = 'https://ipapi.co/json/';
+    return jsonp(url, {}).then((data) => {
+      const lat = data && (data.latitude || data.lat);
+      const lng = data && (data.longitude || data.lon || data.lng);
+      if (typeof lat === 'number' && typeof lng === 'number') {
+        const ll = { lat, lng };
+        currentCenter = ll;
+        DG.then(() => {
+          if (map && centerMarker) {
+            map.setView([ll.lat, ll.lng], 13);
+            centerMarker.setLatLng([ll.lat, ll.lng]);
+          }
+        });
+        reverseGeocode(ll).then((addr) => {
+          if (addr && els.address) els.address.value = addr;
+        }).catch(() => {});
+        return ll;
+      } else {
+        throw new Error('IP 定位返回无坐标');
+      }
+    }).catch((e) => {
+      console.warn('IP 近似定位失败', e);
+    });
   }
 
   // Load restaurants strictly via 2GIS (no demo fallback)
@@ -503,4 +545,13 @@ async function reverseGeocode(ll) {
   if (!res.ok) return '';
   const data = await res.json();
   return (data && (data.display_name || data.name)) || '';
+}
+
+// Helper: allow geolocation on https or localhost
+function isSecureAllowed() {
+  try {
+    if (window.isSecureContext) return true;
+    const h = location.hostname;
+    return h === 'localhost' || h === '127.0.0.1' || h.endsWith('.localhost');
+  } catch { return false; }
 }
