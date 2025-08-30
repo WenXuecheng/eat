@@ -120,3 +120,18 @@ body {
   opacity: 1;
   transform: translateY(0);
 }
+
+/* Shape Blur (Reactbits style) for final selection */
+.rb-shape-blur { position: relative; overflow: hidden; }
+.rb-shape-blur .sb-inner {
+  filter: blur(10px);
+  clip-path: circle(0% at 50% 50%);
+}
+.rb-shape-blur.is-visible .sb-inner {
+  animation: rb-sb-reveal 700ms cubic-bezier(.2,.7,.2,1) forwards;
+}
+@keyframes rb-sb-reveal {
+  0%   { filter: blur(10px); clip-path: circle(0% at 50% 50%); transform: scale(1.01); }
+  60%  { filter: blur(4px);  clip-path: circle(80% at 50% 50%); }
+  100% { filter: blur(0);    clip-path: circle(150% at 50% 50%); transform: scale(1); }
+}

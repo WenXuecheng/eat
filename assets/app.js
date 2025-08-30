@@ -534,14 +534,18 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
 
   function showSelection(item) {
     els.selection.classList.remove('hidden');
+    els.selection.classList.add('rb-shape-blur');
+    els.selection.classList.remove('is-visible');
     els.selection.innerHTML = `
-      <h3>结果：${escapeHtml(item.name)}</h3>
-      <div class="row"><span class="muted">地址：</span><span>${escapeHtml(item.address || '暂无')}</span></div>
-      <div class="row"><span class="muted">评分：</span><span>${item.rating ? escapeHtml(String(item.rating)) : '暂无'}</span></div>
-      ${item.phones && item.phones.length ? `<div class="row"><span class="muted">电话：</span><span>${item.phones.map(escapeHtml).join(' / ')}</span></div>` : ''}
-      ${item.url ? `<div class="row"><a href="${item.url}" target="_blank" rel="noopener">查看详情</a></div>` : ''}
+      <div class="sb-inner">
+        <h3>结果：${escapeHtml(item.name)}</h3>
+        <div class="row"><span class="muted">地址：</span><span>${escapeHtml(item.address || '暂无')}</span></div>
+        <div class="row"><span class="muted">评分：</span><span>${item.rating ? escapeHtml(String(item.rating)) : '暂无'}</span></div>
+        ${item.phones && item.phones.length ? `<div class="row"><span class="muted">电话：</span><span>${item.phones.map(escapeHtml).join(' / ')}</span></div>` : ''}
+        ${item.url ? `<div class="row"><a href="${item.url}" target="_blank" rel="noopener">查看详情</a></div>` : ''}
+      </div>
     `;
-    applyGradualBlur([els.selection]);
+    triggerShapeBlur(els.selection);
   }
 
   async function handleSearch(centerOverride) {
@@ -716,6 +720,17 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
         setTimeout(() => { el.classList.add('is-visible'); }, delay);
       } catch {}
     });
+  }
+
+  // Shape Blur helper
+  function triggerShapeBlur(el) {
+    if (!el) return;
+    try {
+      // restart animation by toggling class and forcing reflow
+      el.classList.remove('is-visible');
+      void el.offsetWidth;
+      el.classList.add('is-visible');
+    } catch {}
   }
 })();
 
