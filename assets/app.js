@@ -158,12 +158,12 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       alert('请先在页面中保存 2GIS API Key');
       return [];
     }
-    const keyword = getQueryKeyword();
+    const keyword = getQueryKeywordEnglish();
     try {
       const radius = getRadiusMeters();
       const limit = getMaxCount();
-      const list = await loadRestaurants2GIS(center, radius, key, keyword);
-      const finalList = Array.isArray(list) ? list.slice(0, limit) : [];
+      const list = await loadRestaurants2GIS(center, radius, key, keyword, limit);
+      const finalList = Array.isArray(list) ? list : [];
       // draw or update search circle
       drawSearchCircle(center, radius);
       if (els.stats) {
@@ -177,19 +177,17 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     }
   }
 
-  // 2GIS Directory API: paginate nearby; fallback to keyword-only; no forced type filter
-  function loadRestaurants2GIS(center, radiusMeters, apiKey, keyword) {
+  // 2GIS Directory API: nearby search with english tokens and lon,lat
+  function loadRestaurants2GIS(center, radiusMeters, apiKey, keywordEn, limit) {
     const endpoint = 'https://catalog.api.2gis.com/3.0/items';
     const radius = String(Math.max(100, Math.min(3000, Math.floor(radiusMeters))));
-    const qNearby = translateZhToRu(keyword) || 'restaurant';
-
-    // Demo key limits; safe defaults even for paid keys
+    const qNearby = keywordEn || 'restaurant';
     const DEMO_PAGE_SIZE_MAX = 10;
     const DEMO_PAGE_MAX = 5;
+    const target = Math.max(1, Math.min(200, Number(limit) || 50));
 
     async function fetchPage(params) {
       const url = `${endpoint}?${params.toString()}`;
-      // console.debug('2GIS GET', url);
       const res = await fetch(url, { mode: 'cors' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.json();
@@ -198,15 +196,15 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     async function nearbyPaginated() {
       const all = [];
       lastSearchTotal = null;
-      for (let page = 1; page <= DEMO_PAGE_MAX; page++) {
+      for (let page = 1; page <= DEMO_PAGE_MAX && all.length < target; page++) {
         const p = new URLSearchParams({
           key: apiKey,
           q: qNearby,
           point: `${center.lng},${center.lat}`,
           radius,
           page: String(page),
-          page_size: String(DEMO_PAGE_SIZE_MAX),
-          fields: 'items.name,items.point,items.address,items.contact_groups,items.rating,items.links,items.external_content'
+          page_size: String(Math.min(DEMO_PAGE_SIZE_MAX, target - all.length) || 1),
+          fields: 'items.name,items.address,items.point,items.schedule'
         });
         const data = await fetchPage(p);
         if (lastSearchTotal == null && data && data.result && typeof data.result.total === 'number') {
@@ -215,55 +213,30 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
         const items = (data && data.result && data.result.items) || [];
         if (!items.length) break;
         all.push(...items);
-        // If we know total and already have enough, we could break early
       }
       return all;
     }
 
-    async function keywordOnly() {
-      const rawKw = (els.keyword && els.keyword.value || '').trim();
-      const addrText = (els.address && els.address.value || '').trim();
-      const qOnly = [rawKw || keyword || 'food', addrText].filter(Boolean).join(' ');
-      const p = new URLSearchParams({
-        key: apiKey,
-        q: qOnly,
-        page: '1',
-        page_size: String(DEMO_PAGE_SIZE_MAX),
-        fields: 'items.name,items.point,items.address,items.contact_groups,items.rating,items.links,items.external_content'
-      });
-      const data = await fetchPage(p);
-      if (data && data.result && typeof data.result.total === 'number') {
-        lastSearchTotal = data.result.total;
-      }
-      return (data && data.result && data.result.items) || [];
-    }
-
-    // Try nearby first; if empty, fallback to keyword-only
-    return nearbyPaginated()
-      .then(async (items) => {
-        if (items && items.length) return items.map(map2GisItem).filter(Boolean);
-        const items2 = await keywordOnly();
-        return items2.map(map2GisItem).filter(Boolean);
-      })
-      .catch(async () => {
-        // Fallback to one-shot JSONP keyword-only if fetch/CORS fails
-        const rawKw = (els.keyword && els.keyword.value || '').trim();
-        const addrText = (els.address && els.address.value || '').trim();
-        const qOnly = [rawKw || keyword || 'food', addrText].filter(Boolean).join(' ');
-        const params = { key: apiKey, q: qOnly, page: '1', page_size: String(DEMO_PAGE_SIZE_MAX), fields: 'items.name,items.point,items.address,items.contact_groups,items.rating,items.links,items.external_content' };
-        return jsonpPreferDG(endpoint, params).then((res) => {
-          if (res && res.result && typeof res.result.total === 'number') {
-            lastSearchTotal = res.result.total;
-          }
-          const items = (res && res.result && res.result.items) || [];
-          return items.map(map2GisItem).filter(Boolean);
-        });
-      });
+    return nearbyPaginated().then((items) => items.map(map2GisItem).filter(Boolean));
   }
 
-  function getQueryKeyword() {
-    const v = (els.keyword && els.keyword.value || '').trim();
-    return v || '餐厅';
+  function getQueryKeywordEnglish() {
+    const raw = (els.keyword && els.keyword.value || '').trim();
+    if (!raw) return 'restaurant';
+    const low = raw.toLowerCase();
+    const known = ['restaurant','hotel','cafe','bar','subway','bus stop','bus station'];
+    if (known.includes(low)) return low;
+    const map = [
+      [/饭店|餐厅|美食|吃饭|馆子|餐馆/, 'restaurant'],
+      [/酒店|宾馆/, 'hotel'],
+      [/咖啡|咖啡厅|咖啡店/, 'cafe'],
+      [/酒吧/, 'bar'],
+      [/地铁站|地铁口|地铁/, 'subway'],
+      [/公交车站|公交站|公交|公车站|巴士站/, 'bus stop']
+    ];
+    for (const [re, en] of map) { if (re.test(raw)) return en; }
+    for (const k of known) { if (low.includes(k)) return k; }
+    return 'restaurant';
   }
 
   // Basic zh->ru keyword translation for 2GIS search
@@ -535,31 +508,21 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     els.spin.disabled = false;
   }
 
-  // Prefer geocoding via 2GIS Catalog when API key is available; fallback to Nominatim
+  // Geocoding strictly via 2GIS Catalog: items?q=address&fields=items.point
   async function geocodeAddress(address) {
     const key = (els.apiKey && els.apiKey.value ? els.apiKey.value : window.TWO_GIS_API_KEY) || '';
-    if (key) {
-      const endpoint = 'https://catalog.api.2gis.com/3.0/items';
-      const p = new URLSearchParams({ key, q: address, fields: 'items.point,items.address' });
-      const res = await fetch(`${endpoint}?${p.toString()}`, { mode: 'cors' });
-      if (!res.ok) throw new Error('Geocode HTTP ' + res.status);
-      const data = await res.json();
-      const it = data && data.result && data.result.items && data.result.items[0];
-      const point = it && it.point;
-      if (point && typeof point.lat === 'number' && typeof point.lon === 'number') {
-        return { lat: point.lat, lng: point.lon };
-      }
-      // If 2GIS returns nothing for the address, fall back to Nominatim below
+    if (!key) throw new Error('缺少 2GIS API Key');
+    const endpoint = 'https://catalog.api.2gis.com/3.0/items';
+    const p = new URLSearchParams({ key, q: address, fields: 'items.point' });
+    const res = await fetch(`${endpoint}?${p.toString()}`, { mode: 'cors' });
+    if (!res.ok) throw new Error('Geocode HTTP ' + res.status);
+    const data = await res.json();
+    const it = data && data.result && data.result.items && data.result.items[0];
+    const point = it && it.point;
+    if (point && typeof point.lat === 'number' && typeof point.lon === 'number') {
+      return { lat: point.lat, lng: point.lon };
     }
-    const url = new URL('https://nominatim.openstreetmap.org/search');
-    url.searchParams.set('format', 'json');
-    url.searchParams.set('q', address);
-    url.searchParams.set('limit', '1');
-    const res2 = await fetch(url.toString(), { headers: { 'Accept-Language': 'zh-CN' } });
-    if (!res2.ok) throw new Error('Geocode HTTP ' + res2.status);
-    const arr = await res2.json();
-    if (!arr.length) return null;
-    return { lat: parseFloat(arr[0].lat), lng: parseFloat(arr[0].lon) };
+    return null;
   }
 
   // Event bindings
