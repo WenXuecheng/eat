@@ -110,7 +110,8 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
 
   // Fallback: IP-based approximate location via ipapi.co JSONP
   function locateByIP() {
-    const url = 'https://ipapi.co/json/';
+    // Use ipapi.co JSONP endpoint (HTTPS) for CORS-free fallback
+    const url = 'https://ipapi.co/jsonp/';
     return jsonp(url, {}).then((data) => {
       const lat = data && (data.latitude || data.lat);
       const lng = data && (data.longitude || data.lon || data.lng);
