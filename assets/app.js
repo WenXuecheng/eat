@@ -346,6 +346,33 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     });
   }
 
+  // Inside-IIFE helpers so they can access `els`
+  function getRadiusMeters() {
+    const v = (els.radius && parseInt(els.radius.value, 10)) || DEFAULT_RADIUS;
+    return Math.max(100, Math.min(3000, v));
+  }
+
+  function getMaxCount() {
+    const v = (els.maxCount && parseInt(els.maxCount.value, 10)) || 50;
+    return Math.max(1, Math.min(200, v));
+  }
+
+  function drawSearchCircle(center, radius) {
+    DG.then(() => {
+      try {
+        if (searchCircle) { try { map.removeLayer(searchCircle); } catch {}
+        }
+        searchCircle = DG.circle([center.lat, center.lng], radius, {
+          color: '#0066ff',
+          weight: 2,
+          opacity: 0.9,
+          fillColor: '#99ccff',
+          fillOpacity: 0.15,
+        }).addTo(map);
+      } catch {}
+    });
+  }
+
   
 
   function drawWheel(items) {
@@ -697,30 +724,7 @@ function jsonp(url, params) {
   });
   }
 
-  function getRadiusMeters() {
-    const v = (els.radius && parseInt(els.radius.value, 10)) || DEFAULT_RADIUS;
-    return Math.max(100, Math.min(3000, v));
-  }
-
-  function getMaxCount() {
-    const v = (els.maxCount && parseInt(els.maxCount.value, 10)) || 50;
-    return Math.max(1, Math.min(200, v));
-  }
-
-  function drawSearchCircle(center, radius) {
-    DG.then(() => {
-      try {
-        if (searchCircle) { try { map.removeLayer(searchCircle); } catch {} }
-        searchCircle = DG.circle([center.lat, center.lng], radius, {
-          color: '#0066ff',
-          weight: 2,
-          opacity: 0.9,
-          fillColor: '#99ccff',
-          fillOpacity: 0.15,
-        }).addTo(map);
-      } catch {}
-    });
-  }
+// (moved inside IIFE)
 // Prefer DG.ajax.jsonp when available (from 2GIS Maps API)
 function jsonpPreferDG(url, params) {
   return new Promise((resolve, reject) => {
