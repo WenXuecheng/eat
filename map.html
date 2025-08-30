@@ -76,9 +76,17 @@
       <input id="maxInput" type="number" min="1" max="200" step="1" value="50" />
     </label>
     <button id="searchBtn">搜索</button>
-    <!-- 新增：使用当前位置 -->
+    <!-- 使用当前位置 -->
     <button id="locBtn" title="使用浏览器定位并自动反向地理编码">📍 使用当前位置</button>
     <span class="muted">可拖拽中心点，松手后自动刷新，并反查地址。</span>
+    <!-- 快捷筛选：移动到此处 -->
+    <div id="chipsRow" style="display:flex; gap:6px; flex-wrap:wrap; margin-left:8px;">
+      <div class="chip" data-q="fastfood">🍔 快餐 <small>(fastfood)</small></div>
+      <div class="chip" data-q="restaurant">🍽️ 饭店 <small>(restaurant)</small></div>
+      <div class="chip" data-q="hotel">🏨 酒店 <small>(hotel)</small></div>
+      <div class="chip" data-q="cafe">☕ 咖啡厅 <small>(cafe)</small></div>
+      <div class="chip" data-q="bar">🍺 酒吧 <small>(bar)</small></div>
+    </div>
   </header>
 
   <div id="app">
@@ -99,16 +107,7 @@
       </div>
       <div id="list"></div>
 
-      <div class="filters">
-        <div class="muted" style="margin-bottom:6px;">快捷筛选</div>
-        <div id="chipsRow">
-          <div class="chip" data-q="restaurant">🍽️ 饭店 <small>(restaurant)</small></div>
-          <div class="chip" data-q="hotel">🏨 酒店 <small>(hotel)</small></div>
-          <div class="chip" data-q="cafe">☕ 咖啡厅 <small>(cafe)</small></div>
-          <div class="chip" data-q="bar">🍺 酒吧 <small>(bar)</small></div>
-          <div class="chip" data-q="fastfood">🍔 快餐 <small>(fastfood)</small></div>
-        </div>
-      </div>
+      
       <div class="footer-space"></div>
     </aside>
 
