@@ -258,7 +258,7 @@ body {
 .overlay-item .addr { color: var(--rb-muted); }
 .overlay-item .dist { color: var(--rb-muted); margin-left: 6px; }
 
-/* Star Border effect for buttons (Reactbits-inspired) */
+/* Blue outline glow on hover/focus */
 .rb-btn { position: relative; z-index: 0; }
 .rb-btn::before {
   content: "";
@@ -266,24 +266,29 @@ body {
   inset: -2px;
   border-radius: inherit;
   padding: 2px; /* border thickness */
-  background: repeating-conic-gradient(
-    from 0deg,
-    rgba(255,215,0,0.85) 0deg 6deg,
-    rgba(255,215,0,0.00) 6deg 12deg
-  );
+  background: linear-gradient(180deg, var(--rb-primary), color-mix(in srgb, var(--rb-primary) 60%, transparent));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
-  opacity: 0; /* subtle by default */
-  transform: rotate(0deg);
-  animation: rb-star-rot 6s linear infinite;
-  transition: opacity 180ms ease;
+  opacity: 0; /* off by default */
+  box-shadow: 0 0 12px color-mix(in srgb, var(--rb-primary) 55%, transparent), 0 0 24px color-mix(in srgb, var(--rb-primary) 35%, transparent);
+  transition: opacity 140ms ease;
 }
 .rb-btn:hover::before,
-.rb-btn:focus-visible::before { opacity: 0.7; }
+.rb-btn:focus-visible::before {
+  opacity: 1;
+  animation: rb-blue-pulse 1200ms ease-in-out infinite;
+}
 
-@keyframes rb-star-rot { to { transform: rotate(360deg); } }
+@keyframes rb-blue-pulse {
+  0%, 100% {
+    box-shadow: 0 0 10px color-mix(in srgb, var(--rb-primary) 45%, transparent), 0 0 20px color-mix(in srgb, var(--rb-primary) 25%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 20px color-mix(in srgb, var(--rb-primary) 85%, transparent), 0 0 36px color-mix(in srgb, var(--rb-primary) 55%, transparent);
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .rb-btn::before { animation: none; }
