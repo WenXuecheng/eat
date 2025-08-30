@@ -333,7 +333,169 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       const rateHtml = rate ? `<span class=\"rate\">⭐ ${escapeHtml(rate)}</span>` : '';
       cell.innerHTML = `<div class=\"cell-inner\"><div class=\"name\">${escapeHtml(it.name)}${rateHtml}</div><div class=\"addr\">${sched}${escapeHtml(it.address || '')}<span class=\"dist\">${km}</span></div></div>`;
       return cell;
-    };
+  };
+
+  // ==================== Custom Wheel (bottom) ====================
+  const wheelEls = {
+    canvas: null,
+    spin: null,
+    reset: null,
+    add: null,
+    tbody: null,
+    result: null,
+  };
+  let cw = {
+    items: [], // { color: '#rrggbb', text: 'label' }
+    angle: 0, // current rotation radians
+    spinning: false,
+  };
+  function initCustomWheelEls() {
+    try {
+      wheelEls.canvas = document.getElementById('cw-canvas');
+      wheelEls.spin = document.getElementById('cw-spin');
+      wheelEls.reset = document.getElementById('cw-reset');
+      wheelEls.add = document.getElementById('cw-add');
+      wheelEls.tbody = document.getElementById('cw-tbody');
+      wheelEls.result = document.getElementById('cw-result');
+      if (!wheelEls.canvas || !wheelEls.tbody) return;
+      // Default 8 slices
+      cw.items = defaultWheelItems();
+      rebuildWheelTable();
+      drawWheel();
+      wheelEls.spin && wheelEls.spin.addEventListener('click', spinWheel);
+      wheelEls.reset && wheelEls.reset.addEventListener('click', () => { cw.items = defaultWheelItems(); rebuildWheelTable(); drawWheel(); setWheelResult('结果：—'); });
+      wheelEls.add && wheelEls.add.addEventListener('click', () => { cw.items.push({ color: COLORS[cw.items.length % COLORS.length], text: '' }); rebuildWheelTable(); drawWheel(); });
+    } catch {}
+  }
+  function defaultWheelItems() {
+    const base = [
+      { color: '#4f8cff', text: '选项1' },
+      { color: '#3ecf8e', text: '选项2' },
+      { color: '#ffcc66', text: '选项3' },
+      { color: '#ff6b6b', text: '选项4' },
+      { color: '#a78bfa', text: '选项5' },
+      { color: '#22d3ee', text: '选项6' },
+      { color: '#f97316', text: '选项7' },
+      { color: '#10b981', text: '选项8' },
+    ];
+    return base;
+  }
+  function rebuildWheelTable() {
+    if (!wheelEls.tbody) return;
+    wheelEls.tbody.innerHTML = '';
+    cw.items.forEach((it, idx) => {
+      const tr = document.createElement('tr');
+      const tdColor = document.createElement('td');
+      const tdText = document.createElement('td');
+      const tdAct = document.createElement('td');
+      tdColor.innerHTML = `<input type="color" value="${it.color}">`;
+      tdText.innerHTML = `<input type="text" value="${escapeHtml(it.text)}" placeholder="输入文本">`;
+      tdAct.innerHTML = `<div class="actions"><button class="rb-btn rb-btn-ghost" data-act="up">上移</button><button class="rb-btn rb-btn-ghost" data-act="down">下移</button><button class="rb-btn rb-btn-outline" data-act="del">删除</button></div>`;
+      tr.appendChild(tdColor); tr.appendChild(tdText); tr.appendChild(tdAct);
+      // bind
+      tdColor.querySelector('input').addEventListener('change', (e) => { cw.items[idx].color = e.target.value; drawWheel(); });
+      tdText.querySelector('input').addEventListener('input', (e) => { cw.items[idx].text = e.target.value; drawWheel(); });
+      tdAct.addEventListener('click', (e) => {
+        const btn = e.target.closest('button'); if (!btn) return; const act = btn.getAttribute('data-act');
+        if (act === 'del') { cw.items.splice(idx,1); }
+        if (act === 'up' && idx > 0) { const t = cw.items[idx-1]; cw.items[idx-1]=cw.items[idx]; cw.items[idx]=t; }
+        if (act === 'down' && idx < cw.items.length-1) { const t = cw.items[idx+1]; cw.items[idx+1]=cw.items[idx]; cw.items[idx]=t; }
+        rebuildWheelTable(); drawWheel();
+      });
+      wheelEls.tbody.appendChild(tr);
+    });
+  }
+  function setWheelResult(text) { if (wheelEls.result) wheelEls.result.textContent = text; }
+  function drawWheel() {
+    const cv = wheelEls.canvas; if (!cv) return; const ctx = cv.getContext('2d');
+    const W = cv.width, H = cv.height; const cx = W/2, cy = H/2; const r = Math.min(cx, cy) - 6;
+    ctx.clearRect(0,0,W,H);
+    const n = Math.max(1, cw.items.length);
+    const a = (Math.PI * 2) / n;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(cw.angle);
+    for (let i=0;i<n;i++) {
+      const it = cw.items[i];
+      const start = i * a;
+      const end = start + a;
+      // slice
+      ctx.beginPath();
+      ctx.moveTo(0,0); ctx.arc(0,0,r,start,end); ctx.closePath();
+      ctx.fillStyle = it.color || COLORS[i % COLORS.length];
+      ctx.fill();
+      // separator
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 2; ctx.stroke();
+      // text
+      const mid = (start + end) / 2;
+      ctx.save();
+      ctx.rotate(mid);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#fff';
+      ctx.font = '16px ui-sans-serif, system-ui, -apple-system, Segoe UI';
+      const label = (it.text || '').trim() || `#${i+1}`;
+      ctx.translate(r*0.6, 0);
+      wrapFillText(ctx, label, 0, 0, r*0.6, 18);
+      ctx.restore();
+    }
+    // center circle
+    ctx.beginPath(); ctx.arc(0,0,r*0.15,0,Math.PI*2); ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fill();
+    ctx.restore();
+  }
+  function wrapFillText(ctx, text, x, y, maxWidth, lineHeight) {
+    const words = text.split('');
+    let line = '', lines = [];
+    for (let ch of words) {
+      const test = line + ch;
+      if (ctx.measureText(test).width > maxWidth && line) { lines.push(line); line = ch; }
+      else { line = test; }
+    }
+    if (line) lines.push(line);
+    const totalH = lines.length * lineHeight;
+    let offY = y - totalH/2 + lineHeight/2;
+    for (let l of lines) { ctx.fillText(l, x, offY); offY += lineHeight; }
+  }
+  function spinWheel() {
+    if (cw.spinning || !cw.items.length) return;
+    cw.spinning = true;
+    setWheelResult('抽取中…');
+    ensureAudio();
+    const n = cw.items.length; const seg = (Math.PI*2)/n;
+    // choose target index randomly
+    const idx = Math.floor(rand() * n);
+    // compute target angle so that segment center aligns with pointer at 12 o'clock (angle -Math.PI/2)
+    const segCenter = idx * seg + seg/2;
+    // we want cw.angle to end such that cw.angle rotation places segCenter at -Math.PI/2
+    const current = cw.angle % (Math.PI*2);
+    const baseTarget = -Math.PI/2 - segCenter; // relative target angle (mod 2PI)
+    let delta = ((baseTarget - current) % (Math.PI*2) + Math.PI*2) % (Math.PI*2);
+    // add spins (5 full turns)
+    const spins = 5;
+    const total = delta + spins * (Math.PI*2);
+    const duration = 6000;
+    const start = performance.now();
+    let lastTick = -1;
+    function step(ts){
+      const t = Math.min(1, (ts - start) / duration);
+      const k = easeOutCubic(t);
+      const ang = current + total * k;
+      cw.angle = ang;
+      // tick sound when crossing segment
+      try{
+        const pos = ((-ang - Math.PI/2) % (Math.PI*2) + Math.PI*2) % (Math.PI*2); // which segment under pointer
+        const segIdx = Math.floor(pos / seg);
+        if (segIdx !== lastTick) { lastTick = segIdx; playTick(0.04 + 0.04*(1-k), 1000 - 600*k); }
+      }catch{}
+      drawWheel();
+      if (t < 1) requestAnimationFrame(step); else {
+        cw.spinning = false;
+        const chosen = cw.items[idx];
+        setWheelResult('结果：' + (chosen.text || `#${idx+1}`));
+      }
+    }
+    requestAnimationFrame(step);
+  }
 
     // First + second segments (reuse computed distances)
     items.forEach(({ it, dist }, i) => { frag.appendChild(makeCell(i, it, dist)); });
@@ -883,6 +1045,9 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
 
   // No wheel initialization
   initMap();
+
+  // Init custom wheel UI
+  initCustomWheelEls();
 
   // Utility: take up to n random unique items
   function sampleMax(arr, n) {

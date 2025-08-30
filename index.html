@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>今天吃啥 · 2GIS 转盘选饭店</title>
+    <title>今天吃啥 · 2GIS 选饭店</title>
     <link rel="stylesheet" href="assets/style.css" />
     <!-- 2GIS Maps API (Leaflet-based). Try .ru first; fallback to .com if blocked. -->
     <script src="https://maps.api.2gis.ru/2.0/loader.js?pkg=full"></script>
@@ -30,7 +30,7 @@
           <span class="rb-logo">🍽️</span>
           <span class="rb-brand-text">今天吃啥</span>
         </div>
-        <div class="rb-brand-sub">随机转盘 · 2GIS 数据 · <a href="map.html" class="rb-link" style="color: var(--rb-text); text-decoration: underline;">进阶地图页</a></div>
+        <div class="rb-brand-sub">2GIS 数据 · <a href="map.html" class="rb-link" style="color: var(--rb-text); text-decoration: underline;">进阶地图页</a></div>
       </div>
     </header>
 
@@ -98,17 +98,66 @@
           <div class="rb-card results-panel">
             <div class="rb-row rb-row-gap-sm" style="justify-content: space-between; align-items:center;">
               <div class="rb-muted" id="panelStats">结果：—</div>
-              <div class="wheel-actions">
+              <div class="wheel-actions" style="gap:8px; align-items:center;">
+                <label class="rb-label" style="display:inline-flex; align-items:center; gap:6px; font-weight:400;">
+                  <input id="weightedMode" type="checkbox" /> 加权
+                </label>
+                <label class="rb-label" style="display:inline-flex; align-items:center; gap:6px; font-weight:400;">
+                  <input id="seedMode" type="checkbox" /> 固定种子
+                </label>
+                <input id="seedValue" class="rb-input" type="text" placeholder="seed" style="width:120px;" />
                 <button id="btn-start" class="rb-btn rb-btn-success" disabled>开始</button>
               </div>
             </div>
-            <div id="resultsGrid" class="results-grid"></div>
-            <div id="resultsCenter" class="results-center"></div>
+            <div id="resultsGrid" class="results-grid">
+              <div id="resultsCenter" class="results-center"></div>
+            </div>
           </div>
           <div id="selection" class="selection hidden rb-card"></div>
         </div>
       </section>
     </main>
+
+    <!-- Custom Wheel Section -->
+    <section class="rb-container rb-stack-lg" style="margin-top: 18px;">
+      <div class="rb-card rb-stack-md">
+        <div class="rb-row" style="justify-content: space-between; align-items: center;">
+          <h3 style="margin:0;">自定义转盘</h3>
+          <div class="rb-muted">在下表设置每个颜色与内容，点击开始抽奖</div>
+        </div>
+        <div class="rb-grid rb-grid-gap" style="grid-template-columns: 420px 1fr;">
+          <div class="rb-card rb-card-fill" style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+            <div class="wheel-wrap">
+              <canvas id="cw-canvas" width="420" height="420"></canvas>
+              <div class="pointer">▼</div>
+            </div>
+            <div class="wheel-actions" style="gap:8px;">
+              <button id="cw-spin" class="rb-btn rb-btn-success">开始抽奖</button>
+              <button id="cw-reset" class="rb-btn rb-btn-outline">重置默认</button>
+            </div>
+            <div id="cw-result" class="rb-help" style="margin-bottom:8px;">结果：—</div>
+          </div>
+          <div class="rb-stack-md">
+            <div class="rb-row rb-row-gap-sm" style="justify-content: space-between; align-items:center;">
+              <div class="rb-label">配置项</div>
+              <div>
+                <button id="cw-add" class="rb-btn rb-btn-primary" title="添加一行">添加一行</button>
+              </div>
+            </div>
+            <div class="rb-card rb-card-fill">
+              <div class="cw-table-wrap">
+                <table class="cw-table">
+                  <thead>
+                    <tr><th style="width:80px;">颜色</th><th>文本</th><th style="width:80px;">操作</th></tr>
+                  </thead>
+                  <tbody id="cw-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <footer class="rb-footer">
       <div class="rb-container rb-footer-inner">
