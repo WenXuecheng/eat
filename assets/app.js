@@ -539,11 +539,11 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     const current = c.scrollTop % segHeight;
     const targetIndex = Math.floor(Math.random() * baseLen);
     const targetTop = targetIndex * stepPx;
-    const loops = 3; // full loops before landing
+    const loops = 6; // more full loops for faster apparent scroll
     const deltaWithin = (targetTop - current + segHeight) % segHeight;
     const totalDelta = loops * segHeight + deltaWithin;
 
-    const duration = 5000; // 5s
+    const duration = 8000; // 8s for longer suspense
     const start = performance.now();
     const startScroll = c.scrollTop;
 
