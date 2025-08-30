@@ -111,6 +111,8 @@ body {
   max-height: 360px;
   overflow: hidden;
   overscroll-behavior: contain;
+  transform: translateZ(0);
+  will-change: scroll-position;
   /* fade top/bottom edges */
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%);
   mask-image: linear-gradient(to bottom, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%);
@@ -145,6 +147,10 @@ body {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--rb-primary) 35%, transparent), 0 12px 28px rgba(0,0,0,0.45);
 }
 .results-cell.active::before { width: 6px; background: linear-gradient(180deg, var(--rb-primary), color-mix(in srgb, var(--rb-primary) 60%, transparent)); }
+
+/* Spinning animation for list items during shuffle */
+.cell-inner.spinning { animation: rb-spin-y 700ms linear infinite; transform-style: preserve-3d; backface-visibility: hidden; }
+@keyframes rb-spin-y { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
 
 @media (max-width: 860px) {
   .results-grid { grid-template-columns: 1fr; }

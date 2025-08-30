@@ -330,7 +330,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       const cell = document.createElement('div');
       cell.className = 'results-cell';
       const km = dist >= 1000 ? (dist / 1000).toFixed(2) + ' km' : Math.round(dist) + ' m';
-      cell.innerHTML = `<div class="name">${escapeHtml(it.name)}</div><div class="addr">${escapeHtml(it.address || '')}<span class="dist">${km}</span></div>`;
+      cell.innerHTML = `<div class="name">${escapeHtml(it.name)}</div><div class="addr">${escapeHtml(it.address || '')}<span class="dist">${km}</span></div></div>`;
       cell.addEventListener('click', () => {
         try { map.setView([it.lat, it.lng], Math.max(map.getZoom(), 15)); } catch {}
         showSelection(it);
@@ -342,7 +342,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       const cell = document.createElement('div');
       cell.className = 'results-cell';
       const km = dist >= 1000 ? (dist / 1000).toFixed(2) + ' km' : Math.round(dist) + ' m';
-      cell.innerHTML = `<div class="name">${escapeHtml(it.name)}</div><div class="addr">${escapeHtml(it.address || '')}<span class="dist">${km}</span></div>`;
+      cell.innerHTML = `<div class="name">${escapeHtml(it.name)}</div><div class="addr">${escapeHtml(it.address || '')}<span class="dist">${km}</span></div></div>`;
       cell.addEventListener('click', () => {
         try { map.setView([it.lat, it.lng], Math.max(map.getZoom(), 15)); } catch {}
         showSelection(it);
@@ -355,7 +355,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
   }
 
   // Auto-scrolling state for infinite menu
-  const autoScroll = { running: false, raf: 0, last: 0, speed: 28, segHeight: 0, container: null, resumeTimer: 0, touchY: 0 };
+  const autoScroll = { running: false, raf: 0, last: 0, speed: 18, segHeight: 0, container: null, resumeTimer: 0, touchY: 0 };
   function initInfiniteAutoScroll(container, segCount) {
     try {
       autoScroll.container = container;
@@ -491,24 +491,27 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     if (!shuffleState.items.length || shuffleState.running) return;
     shuffleState.running = true;
     if (els.start) els.start.disabled = true;
-    const cells = els.resultsGrid ? Array.from(els.resultsGrid.children) : [];
+    const gridCells = els.resultsGrid ? Array.from(els.resultsGrid.children) : [];
+    const inners = els.resultsGrid ? Array.from(els.resultsGrid.querySelectorAll('.cell-inner')) : [];
+    inners.forEach(el => el.classList.add('spinning'));
     const t0 = performance.now();
     let speed = 100;
     function step() {
       if (!shuffleState.running) return;
       const now = performance.now();
       const elapsed = now - t0;
-      const p = Math.min(1, elapsed / 3000);
+      const p = Math.min(1, elapsed / 5000);
       speed = 50 + Math.floor(250 * (1 - easeOutCubic(1 - p)));
-      if (cells.length) {
-        const idx = Math.floor(Math.random() * cells.length);
-        if (shuffleState.lastIdx >= 0 && shuffleState.lastIdx < cells.length) cells[shuffleState.lastIdx].classList.remove('active');
-        cells[idx].classList.add('active');
+      if (gridCells.length) {
+        const idx = Math.floor(Math.random() * gridCells.length);
+        if (shuffleState.lastIdx >= 0 && shuffleState.lastIdx < gridCells.length) gridCells[shuffleState.lastIdx].classList.remove('active');
+        gridCells[idx].classList.add('active');
         shuffleState.lastIdx = idx;
       }
-      if (elapsed >= 3000) {
+      if (elapsed >= 5000) {
         shuffleState.running = false;
         if (els.start) els.start.disabled = false;
+        inners.forEach(el => el.classList.remove('spinning'));
         const idxFinal = shuffleState.lastIdx >= 0 ? shuffleState.lastIdx : 0;
         const baseLen = Math.max(1, shuffleState.items.length);
         const chosen = shuffleState.items[idxFinal % baseLen] || shuffleState.items[0];
