@@ -350,22 +350,28 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     spinning: false,
   };
   function initCustomWheelEls() {
-    try {
-      wheelEls.canvas = document.getElementById('cw-canvas');
-      wheelEls.spin = document.getElementById('cw-spin');
-      wheelEls.reset = document.getElementById('cw-reset');
-      wheelEls.add = document.getElementById('cw-add');
-      wheelEls.tbody = document.getElementById('cw-tbody');
-      wheelEls.result = document.getElementById('cw-result');
-      if (!wheelEls.canvas || !wheelEls.tbody) return;
-      // Default 8 slices
-      cw.items = defaultWheelItems();
-      rebuildWheelTable();
-      drawWheel();
-      wheelEls.spin && wheelEls.spin.addEventListener('click', spinWheel);
-      wheelEls.reset && wheelEls.reset.addEventListener('click', () => { cw.items = defaultWheelItems(); rebuildWheelTable(); drawWheel(); setWheelResult('结果：—'); });
-      wheelEls.add && wheelEls.add.addEventListener('click', () => { cw.items.push({ color: COLORS[cw.items.length % COLORS.length], text: '' }); rebuildWheelTable(); drawWheel(); });
-    } catch {}
+    wheelEls.canvas = document.getElementById('cw-canvas');
+    wheelEls.spin = document.getElementById('cw-spin');
+    wheelEls.reset = document.getElementById('cw-reset');
+    wheelEls.add = document.getElementById('cw-add');
+    wheelEls.tbody = document.getElementById('cw-tbody');
+    wheelEls.result = document.getElementById('cw-result');
+    if (!wheelEls.canvas || !wheelEls.tbody) return;
+    // Default 8 slices
+    if (!cw.items || !cw.items.length) cw.items = defaultWheelItems();
+    rebuildWheelTable();
+    drawWheel();
+    wheelEls.spin && wheelEls.spin.addEventListener('click', spinWheel);
+    wheelEls.reset && wheelEls.reset.addEventListener('click', () => { cw.items = defaultWheelItems(); rebuildWheelTable(); drawWheel(); setWheelResult('结果：—'); });
+    wheelEls.add && wheelEls.add.addEventListener('click', onAddRow);
+  }
+  function onAddRow(e){
+    try { e && e.preventDefault && e.preventDefault(); } catch {}
+    if (!wheelEls.tbody) initCustomWheelEls();
+    cw.items = cw.items || [];
+    cw.items.push({ color: COLORS[cw.items.length % COLORS.length], text: '' });
+    rebuildWheelTable();
+    drawWheel();
   }
   function defaultWheelItems() {
     const base = [
@@ -496,6 +502,12 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     }
     requestAnimationFrame(step);
   }
+
+  // Fallback delegation: ensure Add works even if direct listener missed
+  document.addEventListener('click', (ev) => {
+    const btn = ev.target && ev.target.closest && ev.target.closest('#cw-add');
+    if (btn) onAddRow(ev);
+  });
 
     // First + second segments (reuse computed distances)
     items.forEach(({ it, dist }, i) => { frag.appendChild(makeCell(i, it, dist)); });
