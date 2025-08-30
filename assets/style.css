@@ -16,6 +16,8 @@
 
 * { box-sizing: border-box; }
 html, body { height: 100%; }
+/* Ensure overscroll reveals a dark backdrop instead of white */
+html { background: var(--rb-bg); }
 body {
   margin: 0;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, PingFang SC, Microsoft YaHei, Noto Sans, Arial;
@@ -136,7 +138,7 @@ body {
 }
 
 /* Scroll Stack effect for results list */
-.rb-ss { position: relative; overflow: auto; }
+.rb-ss { position: relative; overflow: auto; overscroll-behavior: contain; background: rgba(14,19,32,0.5); }
 .rb-ss .rb-ss-item {
   position: sticky;
   top: 6px;
