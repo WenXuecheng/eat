@@ -133,12 +133,12 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
     const url = 'https://catalog.api.2gis.com/3.0/items';
     const baseParams = {
       key: apiKey,
-      q: keyword || '餐厅', // 默认使用中文关键词
+      q: translateZhToRu(keyword) || 'ресторан',
       type: 'branch',
       radius: Math.max(100, Math.min(3000, Math.floor(radiusMeters))),
       page_size: 50,
       fields: 'items.point,items.address,items.contact_groups,items.rating,items.links,items.external_content',
-      locale: 'zh_CN'
+      locale: 'ru_RU'
     };
     const params1 = { ...baseParams, point: `${center.lat},${center.lng}` };
     return jsonpPreferDG(url, params1).then((res) => {
@@ -171,6 +171,39 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
       case 'supermarket': return '超市';
       default: return '餐厅';
     }
+  }
+
+  // Basic zh->ru keyword translation for 2GIS search
+  function translateZhToRu(q) {
+    if (!q) return '';
+    // If already contains Cyrillic, assume Russian and return as-is
+    if (/[\u0400-\u04FF]/.test(q)) return q;
+    const dict = new Map([
+      ['餐厅','ресторан'], ['饭店','ресторан'], ['美食','еда'], ['吃饭','еда'],
+      ['咖啡','кафе'], ['茶','чай'], ['奶茶','чай с молоком'], ['甜品','десерт'],
+      ['酒吧','бар'], ['啤酒','пиво'],
+      ['酒店','отель'], ['宾馆','гостиница'],
+      ['公园','парк'], ['商场','торговый центр'], ['超市','супермаркет'],
+      ['火锅','хот-пот'], ['烤肉','гриль'], ['烧烤','барбекю'],
+      ['披萨','пицца'], ['汉堡','гамбургер'], ['炸鸡','жареная курица'],
+      ['面馆','лапша'], ['拉面','лапша'], ['米线','рисовая лапша'], ['小吃','закуски'],
+      ['日料','японская кухня'], ['寿司','суши'], ['韩餐','корейская кухня'],
+      ['川菜','сычуаньская кухня'], ['粤菜','кантонская кухня'], ['东北菜','маньчжурская кухня']
+    ]);
+    for (const [k, v] of dict.entries()) {
+      if (q.includes(k)) return v;
+    }
+    // Fallback: try common English synonyms if user typed English
+    const enDict = new Map([
+      ['restaurant','ресторан'], ['cafe','кафе'], ['bar','бар'], ['hotel','отель'],
+      ['park','парк'], ['mall','торговый центр'], ['supermarket','супермаркет'],
+      ['pizza','пицца'], ['burger','гамбургер'], ['sushi','суши'], ['bbq','барбекю']
+    ]);
+    const low = q.toLowerCase();
+    for (const [k, v] of enDict.entries()) {
+      if (low.includes(k)) return v;
+    }
+    return q; // last resort: send as-is
   }
 
   function map2GisItem(it) {
