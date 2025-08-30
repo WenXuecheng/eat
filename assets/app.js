@@ -326,6 +326,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
   function updateMapOverlay(list) {
     if (!els.overlayStats || !els.overlayList) return;
     els.overlayStats.textContent = '结果：' + list.length + (lastSearchTotal != null ? (' / ' + lastSearchTotal) : '');
+    applyGradualBlur([els.overlayStats]);
     const center = currentCenter;
     const items = list.map((it) => ({
       it,
@@ -345,6 +346,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       });
       els.overlayList.appendChild(div);
     });
+    applyGradualBlur(Array.from(els.overlayList.children));
   }
 
   // Inside-IIFE helpers so they can access `els`
@@ -539,6 +541,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       ${item.phones && item.phones.length ? `<div class="row"><span class="muted">电话：</span><span>${item.phones.map(escapeHtml).join(' / ')}</span></div>` : ''}
       ${item.url ? `<div class="row"><a href="${item.url}" target="_blank" rel="noopener">查看详情</a></div>` : ''}
     `;
+    applyGradualBlur([els.selection]);
   }
 
   async function handleSearch(centerOverride) {
@@ -701,6 +704,18 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     window.addEventListener('resize', resizeWheel);
     window.addEventListener('orientationchange', resizeWheel);
     resizeWheel();
+  }
+
+  // Gradual Blur helper (Reactbits style)
+  function applyGradualBlur(nodes) {
+    if (!nodes || !nodes.length) return;
+    nodes.forEach((el, idx) => {
+      try {
+        el.classList.add('rb-gb');
+        const delay = idx * 60;
+        setTimeout(() => { el.classList.add('is-visible'); }, delay);
+      } catch {}
+    });
   }
 })();
 
