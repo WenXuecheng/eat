@@ -284,6 +284,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     const lng = point ? (point.lon || point.lng || point.longitude) : undefined;
     if (typeof lat !== 'number' || typeof lng !== 'number') return null;
     const rating = it.rating && (it.rating.value || it.rating.rating || it.rating.total_rating || it.rating);
+    const ratingCount = (it.rating && (it.rating.votes || it.rating.count || it.rating.review_count)) || undefined;
     const address = (it.address && (it.address.name || it.address.address_name || it.address.full_name)) || it.address_name || '';
     const phones = [];
     if (it.contact_groups && Array.isArray(it.contact_groups)) {
@@ -292,7 +293,8 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       });
     }
     const url = (it.links && (it.links.site_url || it.links.firm_card)) || (it.external_content && it.external_content.site_url) || '';
-    return { id: String(it.id || it.hash || it.branch_id || Math.random()), name: it.name || '未命名', lat, lng, address, rating, url, phones };
+    const scheduleText = formatSchedule(it.schedule);
+    return { id: String(it.id || it.hash || it.branch_id || Math.random()), name: it.name || '未命名', lat, lng, address, rating, ratingCount, url, phones, schedule: scheduleText };
   }
 
   // removed demo generators
@@ -462,6 +464,18 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     return s.replace(/[&<>"]+/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   }
 
+  // Format schedule object from 2GIS into simple text
+  function formatSchedule(s) {
+    if (!s) return '';
+    if (typeof s === 'string') return s;
+    try {
+      // Common 2GIS schedule shape may include 'mon','tue'... or 'text' field
+      if (s.text) return String(s.text);
+      // Fallback to compact JSON
+      return JSON.stringify(s);
+    } catch { return ''; }
+  }
+
   function haversine(lat1, lon1, lat2, lon2) {
     const toRad = (d) => d * Math.PI / 180;
     const R = 6371000; // meters
@@ -513,8 +527,9 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     els.selection.innerHTML = `
       <div class="sb-inner">
         <h3>结果：${escapeHtml(item.name)}</h3>
+        ${item.rating ? `<div class="row"><span class="muted">评分：</span><span>${escapeHtml(String(item.rating))}${item.ratingCount ? `（${escapeHtml(String(item.ratingCount))}人评价）` : ''}</span></div>` : ''}
         <div class="row"><span class="muted">地址：</span><span>${escapeHtml(item.address || '暂无')}</span></div>
-        <div class="row"><span class="muted">评分：</span><span>${item.rating ? escapeHtml(String(item.rating)) : '暂无'}</span></div>
+        ${item.schedule ? `<div class="row"><span class="muted">营业时间：</span><span>${escapeHtml(item.schedule)}</span></div>` : ''}
         ${item.phones && item.phones.length ? `<div class="row"><span class="muted">电话：</span><span>${item.phones.map(escapeHtml).join(' / ')}</span></div>` : ''}
         ${item.url ? `<div class="row"><a href="${item.url}" target="_blank" rel="noopener">查看详情</a></div>` : ''}
       </div>
