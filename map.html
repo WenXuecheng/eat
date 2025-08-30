@@ -17,7 +17,16 @@
     input[type="number"] { width:100px; }
     button { cursor:pointer; }
     #app { display:grid; grid-template-columns: 380px 1fr; height: calc(100vh - 56px); }
+    /* Correct mobile viewport height (Safari address bar) */
+    @supports (height: 100svh) {
+      #app { height: calc(100svh - 56px); }
+    }
     #sidebar { border-right:1px solid var(--border); overflow:auto; display:flex; flex-direction:column; }
+    @media (max-width: 768px) {
+      #app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: calc(100vh - 52px); }
+      #sidebar { border-right:0; border-bottom:1px solid var(--border); height: 50vh; }
+      header { padding: 8px 10px; }
+    }
     #map { width:100%; height:100%; }
     .sec { padding:12px 12px 0 12px; }
     .muted { color:var(--muted); font-size:12px; }
@@ -34,16 +43,21 @@
     .chip.active { border-color:#1677ff; box-shadow:0 0 0 2px rgba(22,119,255,.12) inset; }
     .chip small { color:#666; }
     .footer-space { height:10px; }
-
     /* === 星级样式 === */
     .stars { display:inline-block; font-size:13px; line-height:1; }
     .star { display:inline-block; width:14px; text-align:center; }
-    .star.filled { color:#f7b500; }    /* 金色星 */
-    .star.half { color:#f7b500; }      /* 半星同色，用字符实现 */
+    .star.filled { color:#f7b500; }
+    .star.half { color:#f7b500; }
     .star.empty { color:#ccc; }
     .rating-line { display:flex; gap:8px; align-items:center; margin:4px 0 2px; }
     .rating-num { font-size:12px; color:#222; }
     .rating-count { font-size:12px; color:#666; }
+    /* Responsive layout for narrow screens */
+    @media (max-width: 860px) {
+      #app { grid-template-columns: 1fr; }
+      #sidebar { order: 2; max-height: 44svh; overflow:auto; }
+      #map { height: 56svh; min-height: 320px; }
+    }
   </style>
 </head>
 <body>
@@ -62,7 +76,9 @@
       <input id="maxInput" type="number" min="1" max="200" step="1" value="50" />
     </label>
     <button id="searchBtn">搜索</button>
-    <span class="muted">可拖拽中心点，松手后自动刷新。</span>
+    <!-- 新增：使用当前位置 -->
+    <button id="locBtn" title="使用浏览器定位并自动反向地理编码">📍 使用当前位置</button>
+    <span class="muted">可拖拽中心点，松手后自动刷新，并反查地址。</span>
   </header>
 
   <div id="app">
@@ -101,7 +117,7 @@
 
   <script>
     // === 配置 ===
-    const API_KEY = "63296a27-dfc8-48f6-837e-e332369cc356"; // 你的 2GIS catalog API key
+    const API_KEY = "63296a27-dfc8-48f6-837e-e332369cc356"; // 你的 2GIS catalog/geocoder API key
     const CATALOG_BASE = "https://catalog.api.2gis.com/3.0/items";
 
     // 如果是 demo key，2GIS 限制：page_size<=10，page<=5（最多 50 条）
@@ -114,6 +130,7 @@
     const radiusInput = document.getElementById("radiusInput");
     const maxInput = document.getElementById("maxInput");
     const searchBtn = document.getElementById("searchBtn");
+    const locBtn = document.getElementById("locBtn");
     const addrBlock = document.getElementById("addrBlock");
     const latPill = document.getElementById("latPill");
     const lonPill = document.getElementById("lonPill");
@@ -134,8 +151,14 @@
 
       searchBtn.addEventListener("click", () => runSearch());
       chipsRow.addEventListener("click", onChipClick);
+      locBtn.addEventListener("click", useMyLocation);
 
       runSearch();
+
+      // Invalidate map size on resize/orientation (mobile fix)
+      const invalidate = () => { try { map.invalidateSize(false); } catch {} };
+      window.addEventListener('resize', () => setTimeout(invalidate, 150));
+      window.addEventListener('orientationchange', () => setTimeout(invalidate, 150));
     });
 
     function onChipClick(e) {
@@ -151,6 +174,76 @@
         searchAround(lastCenterLatLng, q, radius);
       } else {
         runSearch();
+      }
+    }
+
+    // === 新增：使用浏览器定位并反向地理编码 ===
+    async function useMyLocation() {
+      if (!navigator.geolocation) {
+        showError("此浏览器不支持定位（Geolocation）。");
+        return;
+      }
+      setBusy(locBtn, true, "定位中…");
+      try {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          });
+        });
+        const { latitude, longitude } = position.coords;
+        const center = DG.latLng(latitude, longitude);
+
+        // 反向地理编码：把坐标换成地址文本
+        const niceAddr = await reverseGeocode(longitude, latitude);
+        if (niceAddr) {
+          addrInput.value = niceAddr;
+          addrBlock.innerText = niceAddr;
+        } else {
+          // 兜底：显示经纬度字符串
+          const llTxt = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+          addrInput.value = llTxt;
+          addrBlock.innerText = llTxt;
+        }
+
+        // 同步 UI 与检索
+        latPill.innerText = `lat: ${latitude.toFixed(6)}`;
+        lonPill.innerText = `lon: ${longitude.toFixed(6)}`;
+        lastCenterLatLng = center;
+
+        updateCenterMarker(center); // 包含拖拽监听
+        map.setView(center, 15);
+        const r = parseInt(radiusInput.value, 10) || 2000;
+        drawCircle(center, r);
+        const q = qInput.value.trim() || "restaurant";
+        await searchAround(center, q, r);
+      } catch (err) {
+        showError(`定位失败：${err.message || err}`);
+      } finally {
+        setBusy(locBtn, false, "📍 使用当前位置");
+      }
+    }
+
+    // === 新增：2GIS Geocoder 反向地理编码（坐标->地址） ===
+    async function reverseGeocode(lon, lat) {
+      try {
+        const url = new URL(CATALOG_BASE + "/geocode");
+        url.searchParams.set("lon", String(lon));
+        url.searchParams.set("lat", String(lat));
+        url.searchParams.set("fields", "items.address,items.point");
+        url.searchParams.set("key", API_KEY);
+
+        const r = await fetch(url.toString());
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const j = await r.json();
+        const item = j?.result?.items?.[0];
+        // 优先用完整地址
+        const addr = item?.address?.full_name || item?.address?.name;
+        return addr || "";
+      } catch (e) {
+        console.warn("reverseGeocode error:", e);
+        return "";
       }
     }
 
@@ -181,6 +274,7 @@
           const addressText = formatAddress(item.address) || addr;
 
           addrBlock.innerText = addressText;
+          addrInput.value = addressText; // 同步输入框
           latPill.innerText = `lat: ${lat}`;
           lonPill.innerText = `lon: ${lon}`;
 
@@ -188,32 +282,17 @@
         } else {
           latPill.innerText = `lat: ${center.lat.toFixed(6)}`;
           lonPill.innerText = `lon: ${center.lng.toFixed(6)}`;
+          // 拖拽/外部传入的中心，尝试反查地址刷新显示
+          const revAddr = await reverseGeocode(center.lng, center.lat);
+          if (revAddr) {
+            addrBlock.innerText = revAddr;
+            addrInput.value = revAddr;
+          }
         }
 
         lastCenterLatLng = center;
 
-        if (centerMarker) map.removeLayer(centerMarker);
-
-        const yellowIcon = DG.divIcon({
-          className: "custom-yellow-icon",
-          html: '<div style="width:18px;height:18px;background:#FFD700;border-radius:50%;border:3px solid #333;box-shadow:0 0 0 2px rgba(255,215,0,0.25)"></div>',
-          iconSize: [18,18],
-          iconAnchor: [9,9],
-          popupAnchor: [0,-10]
-        });
-
-        centerMarker = DG.marker(center, { draggable: true, title: "中心点（可拖动）", icon: yellowIcon })
-          .addTo(map)
-          .bindPopup(`<b>中心点</b><br/><small>${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}</small>`);
-        centerMarker.on('dragend', async (e) => {
-          const ll = e.target.getLatLng();
-          lastCenterLatLng = ll;
-          const q2 = qInput.value.trim() || "restaurant";
-          const r2 = parseInt(radiusInput.value, 10) || 2000;
-          drawCircle(ll, r2);
-          await searchAround(ll, q2, r2);
-        });
-
+        updateCenterMarker(center); // 统一创建/替换中心点、绑定拖拽
         map.setView(center, 15);
         drawCircle(center, radius);
         await searchAround(center, q, radius);
@@ -221,6 +300,43 @@
       } catch (err) {
         showError(err.message || String(err));
       }
+    }
+
+    function updateCenterMarker(center) {
+      if (centerMarker) map.removeLayer(centerMarker);
+
+      const yellowIcon = DG.divIcon({
+        className: "custom-yellow-icon",
+        html: '<div style="width:18px;height:18px;background:#FFD700;border-radius:50%;border:3px solid #333;box-shadow:0 0 0 2px rgba(255,215,0,0.25)"></div>',
+        iconSize: [18,18],
+        iconAnchor: [9,9],
+        popupAnchor: [0,-10]
+      });
+
+      centerMarker = DG.marker(center, { draggable: true, title: "中心点（可拖动）", icon: yellowIcon })
+        .addTo(map)
+        .bindPopup(`<b>中心点</b><br/><small>${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}</small>`);
+
+      // 拖拽结束：刷新坐标、反查地址并重搜
+      centerMarker.on('dragend', async (e) => {
+        const ll = e.target.getLatLng();
+        lastCenterLatLng = ll;
+        latPill.innerText = `lat: ${ll.lat.toFixed(6)}`;
+        lonPill.innerText = `lon: ${ll.lng.toFixed(6)}`;
+
+        const revAddr = await reverseGeocode(ll.lng, ll.lat);
+        if (revAddr) {
+          addrBlock.innerText = revAddr;
+          addrInput.value = revAddr;
+        } else {
+          addrBlock.innerText = `${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)}`;
+        }
+
+        const q2 = qInput.value.trim() || "restaurant";
+        const r2 = parseInt(radiusInput.value, 10) || 2000;
+        drawCircle(ll, r2);
+        await searchAround(ll, q2, r2);
+      });
     }
 
     function drawCircle(centerLatLng, radius) {
@@ -260,7 +376,7 @@
         url2.searchParams.set("q", q);
         url2.searchParams.set("point", `${lon},${lat}`); // 注意顺序：lon,lat
         url2.searchParams.set("radius", String(radius));
-        // === 增加 items.reviews 字段以获取评分与点评数 ===
+        // 含评分与点评字段
         url2.searchParams.set("fields", "items.name,items.address,items.point,items.schedule,items.reviews");
         url2.searchParams.set("page", String(page));
         url2.searchParams.set("page_size", String(pageSize));
@@ -297,7 +413,6 @@
         const a = formatAddress(it.address);
         const sched = formatSchedule(it.schedule);
 
-        // === 评分与点评数 ===
         const rating = safeNum(it?.reviews?.rating);
         const reviewCount = safeInt(it?.reviews?.review_count);
 
@@ -339,7 +454,7 @@
       if (markersGroup) markersGroup.clearLayers();
     }
 
-    // === 更新：列表项增加星级评分与点评数 ===
+    // 列表项（含评分）
     function addListItem(idx, name, address, schedule, lat, lon, rating, reviewCount, onClick) {
       const div = document.createElement("div");
       div.className = "card";
@@ -381,6 +496,19 @@
       listEl.innerHTML = `<div class="error">错误：${escapeHtml(msg)}</div>`;
     }
 
+    function setBusy(btn, busy, textWhenBusy) {
+      if (!btn) return;
+      if (busy) {
+        btn.disabled = true;
+        btn.dataset._text = btn.textContent;
+        btn.textContent = textWhenBusy || "处理中…";
+      } else {
+        btn.disabled = false;
+        btn.textContent = btn.dataset._text || "确定";
+        delete btn.dataset._text;
+      }
+    }
+
     function escapeHtml(str) {
       return String(str)
         .replace(/&/g, "&amp;")
@@ -389,17 +517,16 @@
         .replace(/"/g, "&quot;");
     }
 
-    // === 评分渲染工具 ===
+    // 评分渲染工具
     function safeNum(v){ const n = Number(v); return Number.isFinite(n) ? n : NaN; }
     function safeInt(v){ const n = parseInt(v, 10); return Number.isFinite(n) ? n : NaN; }
 
-    // 以 0.5 为步长渲染 5 星：★（满）、⯪（半，用字符近似）、☆（空）
     function renderStarsHTML(rating) {
       if (!Number.isFinite(rating)) {
         return `<span class="stars">${'<span class="star empty">☆</span>'.repeat(5)}</span>`;
       }
       const full = Math.floor(rating);
-      const hasHalf = (rating - full) >= 0.25 && (rating - full) < 0.75; // 宽松半星窗口
+      const hasHalf = (rating - full) >= 0.25 && (rating - full) < 0.75;
       const stars = [];
       for (let i = 0; i < 5; i++) {
         if (i < full) stars.push('<span class="star filled">★</span>');
