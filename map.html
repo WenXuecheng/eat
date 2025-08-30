@@ -65,6 +65,8 @@
   </style>
 </head>
 <body>
+  <link rel="stylesheet" href="assets/galaxy.css" />
+  <div id="galaxy" class="galaxy-bg"></div>
   <header>
     <strong>附近场所可视化（2GIS）</strong>
     <label>地址：
@@ -118,6 +120,29 @@
     <main id="map"></main>
   </div>
 
+  <script src="https://unpkg.com/ogl@0.0.107/dist/ogl.min.js"></script>
+  <script src="assets/galaxy.js"></script>
+  <script>
+    (function(){
+      try {
+        const el = document.getElementById('galaxy');
+        if (el) {
+          window.__destroyGalaxy2 && window.__destroyGalaxy2();
+          window.__destroyGalaxy2 = Galaxy(el, {
+            density: 1.1,
+            hueShift: 180,
+            speed: 1.0,
+            glowIntensity: 0.4,
+            saturation: 0.2,
+            twinkleIntensity: 0.4,
+            rotationSpeed: 0.05,
+            transparent: true,
+            mouseRepulsion: false
+          });
+        }
+      } catch(e) { console.warn('Galaxy init failed', e); }
+    })();
+  </script>
   <script>
     // === 配置 ===
     const API_KEY = "63296a27-dfc8-48f6-837e-e332369cc356"; // 你的 2GIS catalog/geocoder API key

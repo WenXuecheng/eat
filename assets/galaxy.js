@@ -302,16 +302,16 @@ function Galaxy(container, options = {}) {
   }
 
   if (mouseInteraction) {
-    container.addEventListener("mousemove", handleMouseMove);
-    container.addEventListener("mouseleave", handleMouseLeave);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseleave", handleMouseLeave);
   }
 
   return () => {
     cancelAnimationFrame(animateId);
     window.removeEventListener("resize", resize);
     if (mouseInteraction) {
-      container.removeEventListener("mousemove", handleMouseMove);
-      container.removeEventListener("mouseleave", handleMouseLeave);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseleave", handleMouseLeave);
     }
     container.removeChild(gl.canvas);
     gl.getExtension("WEBGL_lose_context")?.loseContext();
