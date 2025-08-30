@@ -53,6 +53,7 @@ input[type="text"], input[type="number"] {
 .controls button[disabled] { opacity: 0.6; cursor: not-allowed; }
 .demo-toggle { margin-left: 6px; display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
 .help { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.hidden { display: none !important; }
 
 .layout { display: grid; grid-template-columns: 1fr 480px; gap: 16px; margin-top: 16px; }
 .map { height: 520px; width: 100%; background: #0b0e17; border: 1px solid #20263a; border-radius: 12px; overflow: hidden; }

@@ -32,7 +32,19 @@
         <div class="control-row">
           <label for="radius">半径（米）</label>
           <input id="radius" type="number" min="100" step="100" value="1000" />
-          <button id="btn-search">搜索饭店</button>
+          <label for="category">类别</label>
+          <select id="category">
+            <option value="restaurant" selected>附近饭店</option>
+            <option value="cafe">咖啡</option>
+            <option value="bar">酒吧</option>
+            <option value="hotel">酒店</option>
+            <option value="park">公园</option>
+            <option value="mall">商场</option>
+            <option value="supermarket">超市</option>
+            <option value="custom">自定义</option>
+          </select>
+          <input id="customQuery" class="hidden" type="text" placeholder="输入自定义类别关键词，例如：火锅、烤肉" />
+          <button id="btn-search">搜索</button>
         </div>
         <div class="help">提示：保存 API Key 后，取消“使用示例数据”即可拉取真实数据。</div>
       </section>

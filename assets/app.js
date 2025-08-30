@@ -16,6 +16,8 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
     apiKey: document.getElementById('apiKey'),
     saveKey: document.getElementById('btn-save-key'),
     radius: document.getElementById('radius'),
+    category: document.getElementById('category'),
+    customQuery: document.getElementById('customQuery'),
     search: document.getElementById('btn-search'),
     demo: document.getElementById('demo-mode'),
     wheel: document.getElementById('wheel'),
@@ -113,7 +115,8 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
       const key = (els.apiKey && els.apiKey.value ? els.apiKey.value : window.TWO_GIS_API_KEY) || '';
       if (key) {
         try {
-          const list = await loadRestaurants2GIS(center, radiusMeters, key);
+          const keyword = getQueryKeyword();
+          const list = await loadRestaurants2GIS(center, radiusMeters, key, keyword);
           if (Array.isArray(list) && list.length) {
             return list;
           }
@@ -126,11 +129,11 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
   }
 
   // 2GIS Directory API via JSONP
-  function loadRestaurants2GIS(center, radiusMeters, apiKey) {
+  function loadRestaurants2GIS(center, radiusMeters, apiKey, keyword) {
     const url = 'https://catalog.api.2gis.com/3.0/items';
     const baseParams = {
       key: apiKey,
-      q: 'restaurant', // 可调整：例如 'cafe', 'fast food'，或中文关键词
+      q: keyword || '餐厅', // 默认使用中文关键词
       type: 'branch',
       radius: Math.max(100, Math.min(3000, Math.floor(radiusMeters))),
       page_size: 50,
@@ -149,6 +152,25 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
       }
       return items.map(map2GisItem).filter(Boolean);
     });
+  }
+
+  function getQueryKeyword() {
+    const cat = els.category ? els.category.value : 'restaurant';
+    if (cat === 'custom' && els.customQuery) {
+      const q = (els.customQuery.value || '').trim();
+      if (q) return q;
+    }
+    // Map categories to CN keywords and English fallbacks
+    switch (cat) {
+      case 'restaurant': return '餐厅';
+      case 'cafe': return '咖啡';
+      case 'bar': return '酒吧';
+      case 'hotel': return '酒店';
+      case 'park': return '公园';
+      case 'mall': return '商场';
+      case 'supermarket': return '超市';
+      default: return '餐厅';
+    }
   }
 
   function map2GisItem(it) {
@@ -416,6 +438,17 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
   els.search.addEventListener('click', handleSearch);
   els.spin.addEventListener('click', startSpin);
   els.radius.addEventListener('change', drawRadius);
+  if (els.category && els.customQuery) {
+    const onCatChange = () => {
+      if (els.category.value === 'custom') {
+        els.customQuery.classList.remove('hidden');
+      } else {
+        els.customQuery.classList.add('hidden');
+      }
+    };
+    els.category.addEventListener('change', onCatChange);
+    onCatChange();
+  }
 
   // Initial draw
   // Prefill saved key
