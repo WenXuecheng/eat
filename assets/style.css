@@ -66,6 +66,8 @@ body {
 .rb-btn-ghost { background: transparent; color: var(--rb-muted); }
 .rb-help { color: var(--rb-muted); font-size: 12px; }
 .hidden { display: none !important; }
+.rb-presets { margin-top: 8px; }
+.rb-btn-chip { padding: 6px 10px; font-size: 12px; border-radius: 999px; }
 
 /* Map and Wheel */
 .map { height: 520px; width: 100%; background: #0b0e17; }

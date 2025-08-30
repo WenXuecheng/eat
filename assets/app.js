@@ -17,6 +17,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
     saveKey: document.getElementById('btn-save-key'),
     keyword: document.getElementById('keyword'),
     search: document.getElementById('btn-search'),
+    presetBtns: Array.from(document.querySelectorAll('[data-kw]')),
     wheel: document.getElementById('wheel'),
     spin: document.getElementById('btn-spin'),
     selection: document.getElementById('selection'),
@@ -453,6 +454,15 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
     });
   }
   els.search.addEventListener('click', handleSearch);
+  if (els.presetBtns && els.presetBtns.length) {
+    els.presetBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const kw = btn.getAttribute('data-kw') || '';
+        if (els.keyword) els.keyword.value = kw;
+        handleSearch();
+      });
+    });
+  }
   els.spin.addEventListener('click', startSpin);
 
   // Initial draw
