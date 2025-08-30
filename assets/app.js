@@ -349,6 +349,21 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     angle: 0, // current rotation radians
     spinning: false,
   };
+  const CW_STORE_KEY = 'custom_wheel_items_v1';
+  function saveWheelItems() {
+    try { localStorage.setItem(CW_STORE_KEY, JSON.stringify(cw.items || [])); } catch {}
+  }
+  function loadWheelItems() {
+    try {
+      const raw = localStorage.getItem(CW_STORE_KEY);
+      if (!raw) return null;
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) {
+        return arr.filter(it => it && typeof it.color === 'string' && typeof it.text === 'string');
+      }
+    } catch {}
+    return null;
+  }
   function initCustomWheelEls() {
     wheelEls.canvas = document.getElementById('cw-canvas');
     wheelEls.spin = document.getElementById('cw-spin');
@@ -357,12 +372,13 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     wheelEls.tbody = document.getElementById('cw-tbody');
     wheelEls.result = document.getElementById('cw-result');
     if (!wheelEls.canvas || !wheelEls.tbody) return;
-    // Default 8 slices
-    if (!cw.items || !cw.items.length) cw.items = defaultWheelItems();
+    // Load from storage or default 8 slices (independent of search)
+    const stored = loadWheelItems();
+    if (stored && stored.length) cw.items = stored; else if (!cw.items || !cw.items.length) cw.items = defaultWheelItems();
     rebuildWheelTable();
     drawWheel();
     wheelEls.spin && wheelEls.spin.addEventListener('click', spinWheel);
-    wheelEls.reset && wheelEls.reset.addEventListener('click', () => { cw.items = defaultWheelItems(); rebuildWheelTable(); drawWheel(); setWheelResult('结果：—'); });
+    wheelEls.reset && wheelEls.reset.addEventListener('click', () => { cw.items = defaultWheelItems(); rebuildWheelTable(); drawWheel(); setWheelResult('结果：—'); saveWheelItems(); });
     wheelEls.add && wheelEls.add.addEventListener('click', onAddRow);
   }
   function onAddRow(e){
@@ -372,6 +388,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     cw.items.push({ color: COLORS[cw.items.length % COLORS.length], text: '' });
     rebuildWheelTable();
     drawWheel();
+    saveWheelItems();
   }
   function defaultWheelItems() {
     const base = [
@@ -399,14 +416,14 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       tdAct.innerHTML = `<div class="actions"><button class="rb-btn rb-btn-ghost" data-act="up">上移</button><button class="rb-btn rb-btn-ghost" data-act="down">下移</button><button class="rb-btn rb-btn-outline" data-act="del">删除</button></div>`;
       tr.appendChild(tdColor); tr.appendChild(tdText); tr.appendChild(tdAct);
       // bind
-      tdColor.querySelector('input').addEventListener('change', (e) => { cw.items[idx].color = e.target.value; drawWheel(); });
-      tdText.querySelector('input').addEventListener('input', (e) => { cw.items[idx].text = e.target.value; drawWheel(); });
+      tdColor.querySelector('input').addEventListener('change', (e) => { cw.items[idx].color = e.target.value; drawWheel(); saveWheelItems(); });
+      tdText.querySelector('input').addEventListener('input', (e) => { cw.items[idx].text = e.target.value; drawWheel(); saveWheelItems(); });
       tdAct.addEventListener('click', (e) => {
         const btn = e.target.closest('button'); if (!btn) return; const act = btn.getAttribute('data-act');
         if (act === 'del') { cw.items.splice(idx,1); }
         if (act === 'up' && idx > 0) { const t = cw.items[idx-1]; cw.items[idx-1]=cw.items[idx]; cw.items[idx]=t; }
         if (act === 'down' && idx < cw.items.length-1) { const t = cw.items[idx+1]; cw.items[idx+1]=cw.items[idx]; cw.items[idx]=t; }
-        rebuildWheelTable(); drawWheel();
+        rebuildWheelTable(); drawWheel(); saveWheelItems();
       });
       wheelEls.tbody.appendChild(tr);
     });
