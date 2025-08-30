@@ -518,39 +518,61 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
   function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
   function startShuffle() {
     if (!shuffleState.items.length || shuffleState.running) return;
+    if (!els.resultsGrid) return;
     shuffleState.running = true;
     if (els.start) els.start.disabled = true;
-    const gridCells = els.resultsGrid ? Array.from(els.resultsGrid.children) : [];
-    const inners = els.resultsGrid ? Array.from(els.resultsGrid.querySelectorAll('.cell-inner')) : [];
-    inners.forEach(el => el.classList.add('spinning'));
-    const t0 = performance.now();
-    let speed = 100;
-    function step() {
+    // Pause auto scroll during slot animation
+    pauseAutoScroll();
+    const c = els.resultsGrid;
+    const cells = Array.from(c.children);
+    const baseLen = Math.max(1, shuffleState.items.length);
+    if (!cells.length) { shuffleState.running = false; if (els.start) els.start.disabled = false; return; }
+
+    // Measure per-item step using top offsets
+    let stepPx = 0;
+    if (cells.length > 1) {
+      stepPx = Math.max(1, cells[1].offsetTop - cells[0].offsetTop);
+    } else {
+      stepPx = Math.max(56, cells[0].offsetHeight + 8);
+    }
+    const segHeight = autoScroll.segHeight || Math.max(stepPx * baseLen, 1);
+    const current = c.scrollTop % segHeight;
+    const targetIndex = Math.floor(Math.random() * baseLen);
+    const targetTop = targetIndex * stepPx;
+    const loops = 3; // full loops before landing
+    const deltaWithin = (targetTop - current + segHeight) % segHeight;
+    const totalDelta = loops * segHeight + deltaWithin;
+
+    const duration = 5000; // 5s
+    const start = performance.now();
+    const startScroll = c.scrollTop;
+
+    function animate(ts) {
       if (!shuffleState.running) return;
-      const now = performance.now();
-      const elapsed = now - t0;
-      const p = Math.min(1, elapsed / 5000);
-      speed = 50 + Math.floor(250 * (1 - easeOutCubic(1 - p)));
-      if (gridCells.length) {
-        const idx = Math.floor(Math.random() * gridCells.length);
-        if (shuffleState.lastIdx >= 0 && shuffleState.lastIdx < gridCells.length) gridCells[shuffleState.lastIdx].classList.remove('active');
-        gridCells[idx].classList.add('active');
-        shuffleState.lastIdx = idx;
-      }
-      if (elapsed >= 5000) {
+      const t = Math.min(1, (ts - start) / duration);
+      const k = easeOutCubic(t);
+      const pos = startScroll + totalDelta * k;
+      c.scrollTop = pos % (segHeight * 2); // keep within double segment
+      if (t < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // Snap exactly to target within current segment
+        const finalPos = Math.floor((startScroll + totalDelta) % segHeight / stepPx) * stepPx;
+        c.scrollTop = (Math.floor((startScroll + totalDelta) / segHeight) % 2) * segHeight + targetTop;
+        // Highlight final cell in current visual segment
+        cells.forEach(el => el.classList.remove('active'));
+        const highlightIdx = targetIndex; // first segment index
+        if (cells[highlightIdx]) cells[highlightIdx].classList.add('active');
+        // Finish
         shuffleState.running = false;
         if (els.start) els.start.disabled = false;
-        inners.forEach(el => el.classList.remove('spinning'));
-        const idxFinal = shuffleState.lastIdx >= 0 ? shuffleState.lastIdx : 0;
-        const baseLen = Math.max(1, shuffleState.items.length);
-        const chosen = shuffleState.items[idxFinal % baseLen] || shuffleState.items[0];
+        const chosen = shuffleState.items[targetIndex] || shuffleState.items[0];
         if (chosen) showSelection(chosen);
-        return;
       }
-      shuffleState.timer = setTimeout(step, speed);
     }
-    step();
+    requestAnimationFrame(animate);
   }
+
 
   function showSelection(item) {
     els.selection.classList.remove('hidden');
