@@ -155,30 +155,53 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
     }
   }
 
-  // 2GIS Directory API via JSONP
+  // 2GIS Directory API: prefer CORS fetch; fallback to JSONP
   function loadRestaurants2GIS(center, radiusMeters, apiKey, keyword) {
-    const url = 'https://catalog.api.2gis.com/3.0/items';
-    const baseParams = {
+    const endpoint = 'https://catalog.api.2gis.com/3.0/items';
+    const params = new URLSearchParams({
       key: apiKey,
       q: translateZhToRu(keyword) || 'ресторан',
       type: 'branch',
-      radius: Math.max(100, Math.min(3000, Math.floor(radiusMeters))),
-      page_size: 50,
+      // point expects lon,lat (x,y)
+      point: `${center.lng},${center.lat}`,
+      radius: String(Math.max(100, Math.min(3000, Math.floor(radiusMeters)))),
+      page_size: '50',
+      sort: 'distance',
       fields: 'items.point,items.address,items.contact_groups,items.rating,items.links,items.external_content',
       locale: 'ru_RU'
-    };
-    const params1 = { ...baseParams, point: `${center.lat},${center.lng}` };
-    return jsonpPreferDG(url, params1).then((res) => {
-      let items = (res && res.result && res.result.items) || [];
-      if (!items.length) {
-        const params2 = { ...baseParams, point: `${center.lng},${center.lat}` };
-        return jsonpPreferDG(url, params2).then((res2) => {
-          items = (res2 && res2.result && res2.result.items) || [];
+    });
+
+    // Try fetch with CORS first
+    const url = `${endpoint}?${params.toString()}`;
+    return fetch(url, { mode: 'cors' })
+      .then((res) => {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then((data) => {
+        let items = (data && data.result && Array.isArray(data.result.items) && data.result.items) || [];
+        // If empty, attempt swapping point order as a defensive fallback
+        if (!items.length) {
+          const params2 = new URLSearchParams(params);
+          params2.set('point', `${center.lat},${center.lng}`); // try lat,lon
+          return fetch(`${endpoint}?${params2.toString()}`, { mode: 'cors' })
+            .then((res2) => res2.ok ? res2.json() : Promise.reject(new Error('HTTP ' + res2.status)))
+            .then((data2) => {
+              const items2 = (data2 && data2.result && data2.result.items) || [];
+              return items2.map(map2GisItem).filter(Boolean);
+            })
+            .catch(() => items.map(map2GisItem).filter(Boolean));
+        }
+        return items.map(map2GisItem).filter(Boolean);
+      })
+      .catch(() => {
+        // Fallback to JSONP if fetch/CORS fails
+        const jsonpParams = Object.fromEntries(params.entries());
+        return jsonpPreferDG(endpoint, jsonpParams).then((res) => {
+          const items = (res && res.result && res.result.items) || [];
           return items.map(map2GisItem).filter(Boolean);
         });
-      }
-      return items.map(map2GisItem).filter(Boolean);
-    });
+      });
   }
 
   function getQueryKeyword() {
@@ -454,6 +477,17 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
     });
   }
   els.search.addEventListener('click', handleSearch);
+  // Press Enter in keyword or address triggers search
+  if (els.keyword) {
+    els.keyword.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleSearch();
+    });
+  }
+  if (els.address) {
+    els.address.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleSearch();
+    });
+  }
   if (els.presetBtns && els.presetBtns.length) {
     els.presetBtns.forEach(btn => {
       btn.addEventListener('click', () => {
