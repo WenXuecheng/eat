@@ -28,6 +28,9 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     resultsCenter: document.getElementById('resultsCenter'),
     presetBtns: Array.from(document.querySelectorAll('[data-kw]')),
     start: document.getElementById('btn-start'),
+    weightedMode: document.getElementById('weightedMode'),
+    seedMode: document.getElementById('seedMode'),
+    seedValue: document.getElementById('seedValue'),
     selection: document.getElementById('selection'),
     map: document.getElementById('map'),
   };
@@ -39,6 +42,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
   let markers = [];
   const DEFAULT_RADIUS = 1000; // meters
   let lastSearchTotal = null; // API reported total results if available
+  let searchAbortController = null; // abort in-flight searches when new one starts
   // Results track (for smooth translate-based scrolling)
   let resultsTrack = null;
   let cellStepPx = 0;
@@ -172,7 +176,10 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     try {
       const radius = getRadiusMeters();
       const limit = getMaxCount();
-      const list = await loadRestaurants2GIS(center, radius, key, keyword, limit);
+      // Abort any in-flight search
+      try { if (searchAbortController) searchAbortController.abort(); } catch {}
+      searchAbortController = new AbortController();
+      const list = await loadRestaurants2GIS(center, radius, key, keyword, limit, searchAbortController.signal);
       const finalList = Array.isArray(list) ? list : [];
       // draw or update search circle
       drawSearchCircle(center, radius);
@@ -181,6 +188,9 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       }
       return finalList;
     } catch (e) {
+      if (e && (e.name === 'AbortError' || e.code === 20)) {
+        return [];
+      }
       console.warn('2GIS 加载失败', e);
       alert('从 2GIS 获取数据失败，请检查关键词和 API Key');
       return [];
@@ -188,7 +198,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
   }
 
   // 2GIS Directory API: nearby search with english tokens and lon,lat
-  function loadRestaurants2GIS(center, radiusMeters, apiKey, keywordEn, limit) {
+  function loadRestaurants2GIS(center, radiusMeters, apiKey, keywordEn, limit, signal) {
     const endpoint = 'https://catalog.api.2gis.com/3.0/items';
     const radius = String(Math.max(100, Math.min(3000, Math.floor(radiusMeters))));
     const qNearby = keywordEn || 'restaurant';
@@ -198,7 +208,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
 
     async function fetchPage(params) {
       const url = `${endpoint}?${params.toString()}`;
-      const res = await fetch(url, { mode: 'cors' });
+      const res = await fetch(url, { mode: 'cors', signal });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.json();
     }
@@ -250,38 +260,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     return 'fastfood';
   }
 
-  // Basic zh->ru keyword translation for 2GIS search
-  function translateZhToRu(q) {
-    if (!q) return '';
-    // If already contains Cyrillic, assume Russian and return as-is
-    if (/[\u0400-\u04FF]/.test(q)) return q;
-    const dict = new Map([
-      ['餐厅','ресторан'], ['饭店','ресторан'], ['美食','еда'], ['吃饭','еда'],
-      ['咖啡','кафе'], ['茶','чай'], ['奶茶','чай с молоком'], ['甜品','десерт'],
-      ['酒吧','бар'], ['啤酒','пиво'],
-      ['酒店','отель'], ['宾馆','гостиница'],
-      ['公园','парк'], ['商场','торговый центр'], ['超市','супермаркет'],
-      ['火锅','хот-пот'], ['烤肉','гриль'], ['烧烤','барбекю'],
-      ['披萨','пицца'], ['汉堡','гамбургер'], ['炸鸡','жареная курица'],
-      ['面馆','лапша'], ['拉面','лапша'], ['米线','рисовая лапша'], ['小吃','закуски'],
-      ['日料','японская кухня'], ['寿司','суши'], ['韩餐','корейская кухня'],
-      ['川菜','сычуаньская кухня'], ['粤菜','кантонская кухня'], ['东北菜','маньчжурская кухня']
-    ]);
-    for (const [k, v] of dict.entries()) {
-      if (q.includes(k)) return v;
-    }
-    // Fallback: try common English synonyms if user typed English
-    const enDict = new Map([
-      ['restaurant','ресторан'], ['cafe','кафе'], ['bar','бар'], ['hotel','отель'],
-      ['park','парк'], ['mall','торговый центр'], ['supermarket','супермаркет'],
-      ['pizza','пицца'], ['burger','гамбургер'], ['sushi','суши'], ['bbq','барбекю']
-    ]);
-    const low = q.toLowerCase();
-    for (const [k, v] of enDict.entries()) {
-      if (low.includes(k)) return v;
-    }
-    return q; // last resort: send as-is
-  }
+  // removed unused zh->ru translation helper (not invoked)
 
   function map2GisItem(it) {
     const point = it.point || (it.geometry && it.geometry.centroid);
@@ -329,41 +308,49 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       it,
       dist: haversine(center.lat, center.lng, it.lat, it.lng)
     }));
+    // Clear and rebuild track with fragments + event delegation
     els.resultsGrid.innerHTML = '';
-    // Build track wrapper
+    // ensure center overlay exists inside grid
+    let centerOverlay = document.createElement('div');
+    centerOverlay.id = 'resultsCenter';
+    centerOverlay.className = 'results-center';
+    els.resultsGrid.appendChild(centerOverlay);
+    els.resultsCenter = centerOverlay;
+    // track underlay
     resultsTrack = document.createElement('div');
     resultsTrack.className = 'results-track';
     els.resultsGrid.appendChild(resultsTrack);
-    // Build first segment
-    items.forEach(({ it, dist }) => {
+
+    const baseLen = items.length;
+    const frag = document.createDocumentFragment();
+    const makeCell = (idx, it, dist) => {
       const cell = document.createElement('div');
       cell.className = 'results-cell';
+      cell.dataset.idx = String(idx);
       const km = dist >= 1000 ? (dist / 1000).toFixed(2) + ' km' : Math.round(dist) + ' m';
       const rate = (typeof it.rating === 'number') ? (Number(it.rating).toFixed(1)) : '';
       const sched = it.schedule ? `<span class=\"sched\">${escapeHtml(it.schedule)}</span> · ` : '';
       const rateHtml = rate ? `<span class=\"rate\">⭐ ${escapeHtml(rate)}</span>` : '';
       cell.innerHTML = `<div class=\"cell-inner\"><div class=\"name\">${escapeHtml(it.name)}${rateHtml}</div><div class=\"addr\">${sched}${escapeHtml(it.address || '')}<span class=\"dist\">${km}</span></div></div>`;
-      cell.addEventListener('click', () => {
-        try { map.setView([it.lat, it.lng], Math.max(map.getZoom(), 15)); } catch {}
-        showSelection(it);
-      });
-      resultsTrack.appendChild(cell);
-    });
-    // Duplicate for seamless loop
-    items.forEach(({ it, dist }) => {
-      const cell = document.createElement('div');
-      cell.className = 'results-cell';
-      const km = dist >= 1000 ? (dist / 1000).toFixed(2) + ' km' : Math.round(dist) + ' m';
-      const rate = (typeof it.rating === 'number') ? (Number(it.rating).toFixed(1)) : '';
-      const sched = it.schedule ? `<span class=\"sched\">${escapeHtml(it.schedule)}</span> · ` : '';
-      const rateHtml = rate ? `<span class=\"rate\">⭐ ${escapeHtml(rate)}</span>` : '';
-      cell.innerHTML = `<div class=\"cell-inner\"><div class=\"name\">${escapeHtml(it.name)}${rateHtml}</div><div class=\"addr\">${sched}${escapeHtml(it.address || '')}<span class=\"dist\">${km}</span></div></div>`;
-      cell.addEventListener('click', () => {
-        try { map.setView([it.lat, it.lng], Math.max(map.getZoom(), 15)); } catch {}
-        showSelection(it);
-      });
-      resultsTrack.appendChild(cell);
-    });
+      return cell;
+    };
+
+    // First + second segments (reuse computed distances)
+    items.forEach(({ it, dist }, i) => { frag.appendChild(makeCell(i, it, dist)); });
+    items.forEach(({ it, dist }, i) => { frag.appendChild(makeCell(i, it, dist)); });
+    resultsTrack.appendChild(frag);
+
+    // Delegate clicks to track to avoid per-cell listeners
+    resultsTrack.onclick = (e) => {
+      let el = e.target;
+      while (el && el !== resultsTrack && !el.classList.contains('results-cell')) el = el.parentElement;
+      if (!el || el === resultsTrack) return;
+      const idx = Number(el.dataset.idx || 0) % baseLen;
+      const sel = items[idx] && items[idx].it;
+      if (!sel) return;
+      try { map.setView([sel.lat, sel.lng], Math.max(map.getZoom(), 15)); } catch {}
+      showSelection(sel);
+    };
     shuffleState.items = list.slice();
     if (els.start) els.start.disabled = list.length === 0;
     initInfiniteAutoScroll(els.resultsGrid, list.length);
@@ -482,15 +469,13 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
 
   // Wheel removed
 
-  function drawTextWithShadow() {}
-  function drawTextWithShadowAt() {}
-
   function truncate(s, n) {
     return s.length > n ? s.slice(0, n - 1) + '…' : s;
   }
 
   function escapeHtml(s) {
-    return s.replace(/[&<>"]+/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const str = (s == null) ? '' : String(s);
+    return str.replace(/[&<>"]+/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   }
 
   // Format schedule object from 2GIS into concise text (today's hours or a short text)
@@ -539,9 +524,98 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
   }
 
   function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+  // Weighted pick by rating/reviews (optional)
+  function pickWeightedIndex(arr) {
+    const weights = arr.map((it) => {
+      const r = Number(it.rating) || 0; // 0..5
+      const c = Number(it.ratingCount) || 0;
+      const w = Math.max(0, r) * Math.log1p(Math.max(0, c)) + 1; // >= 1
+      return w;
+    });
+    const total = weights.reduce((a,b)=>a+b,0) || arr.length;
+    let x = Math.random() * total;
+    for (let i=0;i<weights.length;i++) {
+      x -= weights[i];
+      if (x <= 0) return i;
+    }
+    return 0;
+  }
+  // Seeded RNG helpers
+  function xmur3(str) {
+    let h = 1779033703 ^ str.length;
+    for (let i = 0; i < str.length; i++) {
+      h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+      h = (h << 13) | (h >>> 19);
+    }
+    return function() {
+      h = Math.imul(h ^ (h >>> 16), 2246822507);
+      h = Math.imul(h ^ (h >>> 13), 3266489909);
+      h ^= h >>> 16;
+      return h >>> 0;
+    };
+  }
+  function sfc32(a, b, c, d) {
+    return function() {
+      a >>>= 0; b >>>= 0; c >>>= 0; d >>>= 0;
+      var t = (a + b) | 0;
+      a = b ^ (b >>> 9);
+      b = (c + (c << 3)) | 0;
+      c = (c << 21) | (c >>> 11);
+      d = (d + 1) | 0;
+      t = (t + d) | 0;
+      c = (c + t) | 0;
+      return (t >>> 0) / 4294967296;
+    };
+  }
+  let seededRng = null;
+  function initSeededRng() {
+    const seedStr = (els.seedValue && els.seedValue.value) ? String(els.seedValue.value) : '';
+    const hasSeed = !!(els.seedMode && els.seedMode.checked && seedStr);
+    if (!hasSeed) { seededRng = null; return; }
+    const h = xmur3(seedStr);
+    seededRng = sfc32(h(), h(), h(), h());
+  }
+  function rand() { return seededRng ? seededRng() : Math.random(); }
+  // Simple tick sound using WebAudio
+  let audioCtx = null;
+  function ensureAudio() {
+    try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch {}
+  }
+  function playTick(volume = 0.06, freq = 900) {
+    if (!audioCtx) return;
+    const dur = 0.03;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.value = freq;
+    gain.gain.value = volume;
+    osc.connect(gain).connect(audioCtx.destination);
+    const t = audioCtx.currentTime;
+    gain.gain.setValueAtTime(volume, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    osc.start(t);
+    osc.stop(t + dur);
+  }
+  // Compute the visual center line (px) within resultsGrid by comparing
+  // the overlay band position against the grid's top. Falls back to grid center.
+  function getCenterLineOffset() {
+    try {
+      if (els.resultsGrid) {
+        // The center is simply half the height of the scroll container.
+        return els.resultsGrid.getBoundingClientRect().height / 2;
+      }
+      // Fallback if grid is not available
+      return Math.max(24, cellStepPx / 2);
+    } catch {
+      return Math.max(24, cellStepPx / 2);
+    }
+  }
   function startShuffle() {
     if (!shuffleState.items.length || shuffleState.running) return;
     if (!els.resultsGrid) return;
+    // user gesture likely present here; init audio/seed
+    ensureAudio();
+    initSeededRng();
     shuffleState.running = true;
     if (els.start) els.start.disabled = true;
     // Pause auto scroll during slot animation
@@ -549,20 +623,28 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     const c = els.resultsGrid;
     const baseLen = Math.max(1, shuffleState.items.length);
     const current = ((autoScroll.offset % autoScroll.segHeight) + autoScroll.segHeight) % autoScroll.segHeight;
-    const finalIndex = Math.floor(Math.random() * baseLen);
+    let finalIndex;
+    if (els.weightedMode && els.weightedMode.checked) {
+      finalIndex = pickWeightedIndex(shuffleState.items);
+    } else {
+      finalIndex = Math.floor(rand() * baseLen);
+    }
     shuffleState.finalIndex = finalIndex;
     const targetTop = finalIndex * cellStepPx;
-    const loops = 6; // faster apparent spin
-    // align to center line (cell center on center line)
-    const centerY = (els.resultsGrid ? els.resultsGrid.clientHeight : cellStepPx) / 2;
+    // Spin settings: 15s total, start fast then slow, more loops for better feel
+    const loops = 10;
+    // Align to actual visual center line (overlay band center)
+    const centerY = getCenterLineOffset();
     const targetVis = (targetTop + cellStepPx / 2 - centerY + autoScroll.segHeight) % autoScroll.segHeight;
     const deltaWithin = (targetVis - current + autoScroll.segHeight) % autoScroll.segHeight;
     const totalDelta = loops * autoScroll.segHeight + deltaWithin;
 
-    const duration = 8000; // 8s
+    const duration = 15000; // 15s
     const start = performance.now();
     const startOffset = current;
 
+    // tick sound state
+    let lastTickRow = -1;
     function animate(ts) {
       if (!shuffleState.running) return;
       const t = Math.min(1, (ts - start) / duration);
@@ -571,41 +653,57 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       autoScroll.offset = pos % (autoScroll.segHeight * 2);
       const offsetVis = ((autoScroll.offset % autoScroll.segHeight) + autoScroll.segHeight) % autoScroll.segHeight;
       if (resultsTrack) resultsTrack.style.transform = `translate3d(0, ${-offsetVis}px, 0)`;
+      // Play tick when crossing a row boundary; pitch slightly drops with progress
+      try {
+        const row = Math.floor(offsetVis / cellStepPx);
+        if (row !== lastTickRow) {
+          lastTickRow = row;
+          const pitch = 1200 - 800 * k; // 1200 -> 400 Hz
+          const vol = 0.06 + 0.06 * (1 - k);
+          playTick(vol, pitch);
+        }
+      } catch {}
       if (t < 1) {
         requestAnimationFrame(animate);
       } else {
-        // Snap to target offset
-      autoScroll.offset = targetVis;
-      if (resultsTrack) resultsTrack.style.transform = `translate3d(0, ${-autoScroll.offset}px, 0)`;
-      // Highlight final cell (first segment index)
-      const cells = resultsTrack ? Array.from(resultsTrack.children) : [];
-      cells.forEach(el => el.classList.remove('active'));
-      // Finish
-      shuffleState.running = false;
-      if (els.start) els.start.disabled = false;
-      // Determine which item is under center line (round to nearest row)
-      let finalOffset = ((autoScroll.offset % autoScroll.segHeight) + autoScroll.segHeight) % autoScroll.segHeight;
-      const centerIdx = ((Math.round((finalOffset + centerY - cellStepPx / 2) / cellStepPx)) % baseLen + baseLen) % baseLen;
-      // Snap offset exactly so chosen row center aligns to center line
-      const alignedVis = ((centerIdx * cellStepPx + (cellStepPx / 2 - centerY)) % autoScroll.segHeight + autoScroll.segHeight) % autoScroll.segHeight;
-      autoScroll.offset = alignedVis;
-      if (resultsTrack) resultsTrack.style.transform = `translate3d(0, ${-autoScroll.offset}px, 0)`;
-      finalOffset = alignedVis;
-      const chosen = shuffleState.items[finalIndex] || shuffleState.items[0];
-      // Highlight and flash the visual cell at center (compute by visible index)
-      try {
-        const cells = resultsTrack ? Array.from(resultsTrack.children) : [];
-        cells.forEach(el => el.classList.remove('active','flash'));
-        const visIdx = Math.floor(finalOffset / cellStepPx); // top visible row index within first segment height
-        const centerRowIdx = (visIdx + Math.floor(centerY / cellStepPx)) % cells.length;
-        const flashIdx = centerRowIdx; // already aligned to chosen row at center
-        if (cells[flashIdx]) {
-          cells[flashIdx].classList.add('active','flash');
-          setTimeout(() => { try { cells[flashIdx].classList.remove('flash'); } catch {} }, 5 * 800 + 200);
-        }
-      } catch {}
-      if (chosen) showSelection(chosen);
-    }
+        // Animation finished. Snap to the exact final position for the chosen index.
+        shuffleState.running = false;
+        if (els.start) els.start.disabled = false;
+
+        const finalIndex = shuffleState.finalIndex;
+        const chosen = shuffleState.items[finalIndex] || shuffleState.items[0];
+
+        // 1. Calculate the exact final visual offset required to center the winning item.
+        const targetTop = finalIndex * cellStepPx;
+        const centerY = getCenterLineOffset();
+        const alignedVis = ((targetTop + cellStepPx / 2 - centerY) % autoScroll.segHeight + autoScroll.segHeight) % autoScroll.segHeight;
+
+        // 2. Snap the track to this exact position.
+        // To prevent a visual jump from the animation's end to the snapped position,
+        // we ensure the final offset is on the correct "lap" (the second segment).
+        autoScroll.offset = autoScroll.segHeight + alignedVis;
+        if (resultsTrack) resultsTrack.style.transform = `translate3d(0, ${-alignedVis}px, 0)`;
+
+        // 3. Highlight the correct cell, which is now visually centered.
+        try {
+            const cells = resultsTrack ? Array.from(resultsTrack.children) : [];
+            cells.forEach(el => el.classList.remove('active','flash'));
+            
+            // We render the transform using `alignedVis` (first segment reference),
+            // so the visible centered DOM cell is the one at `finalIndex` in segment 1.
+            const flashIdx = finalIndex;
+    
+            if (cells[flashIdx]) {
+                // Force a reflow to ensure the CSS animation restarts.
+                cells[flashIdx].classList.remove('flash');
+                void cells[flashIdx].offsetWidth;
+                cells[flashIdx].classList.add('active','flash');
+                setTimeout(() => { try { cells[flashIdx].classList.remove('flash'); } catch {} }, 5 * 1200 + 200);
+            }
+        } catch(e) { console.error("Highlight failed", e); }
+        // Ensure the final result shown equals the visually centered row
+        if (chosen) showSelection(chosen);
+      }
     }
     requestAnimationFrame(animate);
   }
@@ -695,6 +793,16 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
 
   // Event bindings
   els.geolocate.addEventListener('click', useGeolocation);
+  // Lightweight debounce to avoid bursty fetches
+  function debounce(fn, wait) {
+    let t = 0;
+    return function debounced(...args) {
+      clearTimeout(t);
+      t = setTimeout(() => fn.apply(this, args), wait);
+    };
+  }
+  const handleSearchDebounced = debounce(() => handleSearch(), 350);
+  const handleSearchCenterDebounced = debounce(() => handleSearch(currentCenter), 350);
   if (els.saveKey) {
     els.saveKey.addEventListener('click', () => {
       const v = (els.apiKey && els.apiKey.value || '').trim();
@@ -704,16 +812,16 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       alert('API Key 已保存（已关闭示例数据）');
     });
   }
-  els.search.addEventListener('click', () => handleSearch());
+  els.search.addEventListener('click', handleSearchDebounced);
   // Press Enter in keyword or address triggers search
   if (els.keyword) {
     els.keyword.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') handleSearch();
+      if (e.key === 'Enter') handleSearchDebounced();
     });
   }
   if (els.address) {
     els.address.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') handleSearch();
+      if (e.key === 'Enter') handleSearchDebounced();
     });
   }
   if (els.presetBtns && els.presetBtns.length) {
@@ -735,14 +843,22 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     });
   }
   if (els.start) els.start.addEventListener('click', startShuffle);
+  // seed controls
+  if (els.seedMode) {
+    els.seedMode.addEventListener('change', initSeededRng);
+  }
+  if (els.seedValue) {
+    els.seedValue.addEventListener('change', initSeededRng);
+    els.seedValue.addEventListener('keydown', (e)=>{ if (e.key==='Enter') initSeededRng(); });
+  }
 
   if (els.radius) {
-    els.radius.addEventListener('change', () => handleSearch(currentCenter));
-    els.radius.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleSearch(currentCenter); });
+    els.radius.addEventListener('change', handleSearchCenterDebounced);
+    els.radius.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleSearchCenterDebounced(); });
   }
   if (els.maxCount) {
-    els.maxCount.addEventListener('change', () => handleSearch(currentCenter));
-    els.maxCount.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleSearch(currentCenter); });
+    els.maxCount.addEventListener('change', handleSearchCenterDebounced);
+    els.maxCount.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleSearchCenterDebounced(); });
   }
 
   // Initial draw
@@ -754,6 +870,17 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
       if (els.apiKey) els.apiKey.value = saved;
     }
   } catch {}
+
+  // Check for a URL parameter to show advanced options, otherwise hide them.
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('options') !== 'show') {
+      if (els.weightedMode) els.weightedMode.parentElement.style.display = 'none';
+      if (els.seedMode) els.seedMode.parentElement.style.display = 'none';
+      if (els.seedValue) els.seedValue.style.display = 'none';
+    }
+  } catch(e) { console.warn("URL param check failed", e); }
+
   // No wheel initialization
   initMap();
 
@@ -769,25 +896,7 @@ window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332
     return a.slice(0, n);
   }
 
-  // Responsive canvas sizing with device pixel ratio
-  function setupResponsiveWheel() {
-    const resizeWheel = () => {
-      const dpr = window.devicePixelRatio || 1;
-      const wrap = els.wheel.parentElement; // .wheel-wrap
-      const maxPx = 420;
-      const cssSize = Math.max(220, Math.min(maxPx, wrap.clientWidth || maxPx));
-      els.wheel.style.width = cssSize + 'px';
-      els.wheel.style.height = cssSize + 'px';
-      els.wheel.width = Math.floor(cssSize * dpr);
-      els.wheel.height = Math.floor(cssSize * dpr);
-      const ctx2 = els.wheel.getContext('2d');
-      ctx2.setTransform(dpr, 0, 0, dpr, 0, 0);
-      drawWheel(spinState.items);
-    };
-    window.addEventListener('resize', resizeWheel);
-    window.addEventListener('orientationchange', resizeWheel);
-    resizeWheel();
-  }
+  // Removed old wheel canvas sizing (unused)
 
   // Gradual Blur helper (Reactbits style)
   function applyGradualBlur(nodes) {

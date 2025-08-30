@@ -125,7 +125,7 @@ body {
 .results-cell {
   position: relative;
   display: flex; align-items: center; gap: 10px;
-  min-height: 52px;
+  height: 64px; /* fixed row height to keep slot steps equal */
   border-radius: 12px;
   border: 1px solid hsla(230 15% 85% / 0.08);
   background: hsla(230 18% 14% / 0.38);
@@ -136,6 +136,8 @@ body {
   cursor: pointer;
   transition: transform 140ms ease, box-shadow 180ms ease, background 180ms ease, border-color 180ms ease;
 }
+.results-cell .cell-inner { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+.results-cell .name, .results-cell .addr { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .results-cell::before {
   content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 12px 0 0 12px;
   background: linear-gradient(180deg, transparent, transparent);
@@ -159,12 +161,12 @@ body {
   height: 56px; /* overridden by JS */
   border-radius: 12px;
   pointer-events: none;
-  /* Glass look */
-  background: hsla(230 18% 14% / 0.28);
-  border: 1px solid hsla(230 15% 85% / 0.12);
-  backdrop-filter: blur(8px) saturate(1.05);
-  -webkit-backdrop-filter: blur(8px) saturate(1.05);
-  box-shadow: 0 8px 28px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.04);
+  /* Hollow frame */
+  background: transparent;
+  border: 2px solid hsla(220 90% 56% / 0.5); /* Use primary color for visibility */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 0 12px hsla(220 90% 56% / 0.3); /* Add a subtle glow to the frame */
   z-index: 2;
 }
 
@@ -182,7 +184,7 @@ body {
   50% { opacity: 0.9; }
 }
 .results-cell.flash {
-  animation: rb-flash 800ms ease-in-out 5, rb-glow 800ms ease-in-out 5;
+  animation: rb-flash 1200ms ease-in-out 5, rb-glow 1200ms ease-in-out 5;
 }
 .results-cell.flash::after {
   content: "";
@@ -192,7 +194,7 @@ body {
   pointer-events: none;
   background: radial-gradient(circle at 50% 50%, rgba(255,215,0,0.35) 0%, rgba(255,215,0,0.18) 25%, transparent 60%);
   opacity: 0;
-  animation: rb-pulse 800ms ease-in-out 5;
+  animation: rb-pulse 1200ms ease-in-out 5;
 }
 .results-cell.active {
   border-color: color-mix(in srgb, var(--rb-primary) 60%, var(--rb-border));
