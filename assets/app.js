@@ -9,7 +9,7 @@
 // Optional: provide your 2GIS Directory API key here or via devtools: window.TWO_GIS_API_KEY = '...'
 // For debugging per user request, we set a temporary default key.
 // NOTE: Remove/override this in production.
-window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '63296a27-dfc8-48f6-837e-e332369cc356';
+window.TWO_GIS_API_KEY = window.TWO_GIS_API_KEY || '';
 
 (function () {
   const els = {
