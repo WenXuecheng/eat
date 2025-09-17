@@ -27,20 +27,20 @@
     <main class="rb-container rb-stack-lg">
       <section class="rb-grid rb-grid-gap" style="grid-template-columns: 260px 1fr; align-items: start;">
         <!-- 左侧：分类栏 -->
-        <aside class="rb-card" style="padding:10px; position:sticky; top:72px; max-height: calc(100svh - 96px); overflow:auto;">
+        <aside class="rb-card rb-glass" style="padding:10px; position:sticky; top:72px; max-height: calc(100svh - 96px); overflow:auto;">
           <div class="rb-label" style="margin-bottom:8px;">分类</div>
           <div id="catList" class="rb-stack-md"></div>
         </aside>
 
         <!-- 右侧：内容区 -->
         <section class="rb-stack-md">
-          <div class="rb-card rb-row rb-row-gap-sm" style="justify-content: space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+          <div class="rb-card rb-glass rb-row rb-row-gap-sm" style="justify-content: space-between; align-items:center; gap:12px; flex-wrap:wrap;">
             <input id="dishSearch" class="rb-input" type="text" placeholder="搜索菜品（支持中文或拼音首字母）" style="flex:1; min-width: 200px;" />
             <label class="rb-label" style="display:inline-flex; gap:6px; align-items:center; font-weight:400;">
               <input id="globalSearch" type="checkbox" /> 全局搜索
             </label>
           </div>
-          <div id="catHeader" class="rb-card rb-stack-md">
+          <div id="catHeader" class="rb-card rb-glass rb-stack-md">
             <div class="rb-row" style="justify-content: space-between; align-items:center;">
               <h3 id="catTitle" style="margin:0;">请选择分类</h3>
               <div class="rb-muted" id="catCount">—</div>
@@ -50,7 +50,7 @@
 
           <div id="dishList" class="rb-grid rb-grid-gap" style="grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));"></div>
 
-          <div id="dishPanel" class="rb-card hidden">
+          <div id="dishPanel" class="rb-card rb-glass hidden">
             <div class="rb-row" style="justify-content: space-between; align-items:center;">
               <h3 id="dishTitle" style="margin:0;">—</h3>
               <div class="rb-row rb-row-gap-sm">
@@ -216,7 +216,7 @@
         els.dishList.innerHTML = '';
         items.forEach(it => {
           const card = document.createElement('div');
-          card.className = 'rb-card';
+          card.className = 'rb-card rb-glass';
           card.style.cursor = 'pointer';
           card.innerHTML = `<div style="font-weight:600;">${escapeHtml(it.title)}</div><div class="rb-muted" style="margin-top:6px;">点击查看制作方法</div>`;
           card.addEventListener('click', () => openDish(it));

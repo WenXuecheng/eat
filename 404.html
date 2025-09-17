@@ -24,19 +24,19 @@
     </header>
 
     <main class="rb-container rb-stack-lg">
-      <section class="rb-card rb-stack-md">
+      <section class="rb-card rb-glass rb-stack-md">
         <h3 style="margin:0">尝试渲染直达菜谱链接</h3>
         <div class="rb-help">支持形如 /CookLikeHOC/分类/菜名 的路径。</div>
         <div id="status" class="rb-muted">解析中…</div>
       </section>
-      <section id="dishPanel" class="rb-card hidden">
+      <section id="dishPanel" class="rb-card rb-glass hidden">
         <div class="rb-row" style="justify-content: space-between; align-items:center;">
           <h3 id="dishTitle" style="margin:0;">—</h3>
           <a id="openCook" class="rb-btn rb-btn-outline" href="/cook.html">在美食制作中打开</a>
         </div>
         <article id="dishContent" class="md-body" style="line-height: 1.75; margin-top:8px;"></article>
       </section>
-      <section id="notFound" class="rb-card hidden">
+      <section id="notFound" class="rb-card rb-glass hidden">
         <div class="rb-stack-md">
           <div class="rb-help">未能识别该链接或菜谱不存在。</div>
           <div>
@@ -132,4 +132,3 @@
     </script>
   </body>
   </html>
-
