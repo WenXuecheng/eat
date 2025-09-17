@@ -1,0 +1,868 @@
+{
+  "base": "CookLikeHOC",
+  "categories": [
+    {
+      "category": "炒菜",
+      "items": [
+        {
+          "title": "菠萝咕咾肉",
+          "path": "CookLikeHOC/炒菜/菠萝咕咾肉.md"
+        },
+        {
+          "title": "菠萝咕咾肉时蔬饭",
+          "path": "CookLikeHOC/炒菜/菠萝咕咾肉时蔬饭.md"
+        },
+        {
+          "title": "蚕豆炒鸡蛋",
+          "path": "CookLikeHOC/炒菜/蚕豆炒鸡蛋.md"
+        },
+        {
+          "title": "剁椒木耳炒鸡蛋",
+          "path": "CookLikeHOC/炒菜/剁椒木耳炒鸡蛋.md"
+        },
+        {
+          "title": "肥肠鸡",
+          "path": "CookLikeHOC/炒菜/肥肠鸡.md"
+        },
+        {
+          "title": "宫保鸡丁",
+          "path": "CookLikeHOC/炒菜/宫保鸡丁.md"
+        },
+        {
+          "title": "贵州风味辣子鸡",
+          "path": "CookLikeHOC/炒菜/贵州风味辣子鸡.md"
+        },
+        {
+          "title": "红烧茄子",
+          "path": "CookLikeHOC/炒菜/红烧茄子.md"
+        },
+        {
+          "title": "胡萝卜炒鸡蛋",
+          "path": "CookLikeHOC/炒菜/胡萝卜炒鸡蛋.md"
+        },
+        {
+          "title": "胡萝卜炒木耳",
+          "path": "CookLikeHOC/炒菜/胡萝卜炒木耳.md"
+        },
+        {
+          "title": "胡萝卜炒肉片",
+          "path": "CookLikeHOC/炒菜/胡萝卜炒肉片.md"
+        },
+        {
+          "title": "家常土豆片",
+          "path": "CookLikeHOC/炒菜/家常土豆片.md"
+        },
+        {
+          "title": "家常小炒",
+          "path": "CookLikeHOC/炒菜/家常小炒.md"
+        },
+        {
+          "title": "毛豆烧土鸡",
+          "path": "CookLikeHOC/炒菜/毛豆烧土鸡.md"
+        },
+        {
+          "title": "农家小炒肉（鸡蛋干）",
+          "path": "CookLikeHOC/炒菜/农家小炒肉（鸡蛋干）.md"
+        },
+        {
+          "title": "农家小炒肉（玉耳）",
+          "path": "CookLikeHOC/炒菜/农家小炒肉（玉耳）.md"
+        },
+        {
+          "title": "芹菜炒香干",
+          "path": "CookLikeHOC/炒菜/芹菜炒香干.md"
+        },
+        {
+          "title": "芹菜香干炒肉丝",
+          "path": "CookLikeHOC/炒菜/芹菜香干炒肉丝.md"
+        },
+        {
+          "title": "青椒炒豆芽",
+          "path": "CookLikeHOC/炒菜/青椒炒豆芽.md"
+        },
+        {
+          "title": "青椒炒鸡蛋",
+          "path": "CookLikeHOC/炒菜/青椒炒鸡蛋.md"
+        },
+        {
+          "title": "清炒菜心",
+          "path": "CookLikeHOC/炒菜/清炒菜心.md"
+        },
+        {
+          "title": "清炒春菜",
+          "path": "CookLikeHOC/炒菜/清炒春菜.md"
+        },
+        {
+          "title": "清炒毛白菜",
+          "path": "CookLikeHOC/炒菜/清炒毛白菜.md"
+        },
+        {
+          "title": "清炒青菜",
+          "path": "CookLikeHOC/炒菜/清炒青菜.md"
+        },
+        {
+          "title": "清炒莴笋片",
+          "path": "CookLikeHOC/炒菜/清炒莴笋片.md"
+        },
+        {
+          "title": "清炒西兰花",
+          "path": "CookLikeHOC/炒菜/清炒西兰花.md"
+        },
+        {
+          "title": "清炒油麦菜",
+          "path": "CookLikeHOC/炒菜/清炒油麦菜.md"
+        },
+        {
+          "title": "什锦蛋炒饭",
+          "path": "CookLikeHOC/炒菜/什锦蛋炒饭.md"
+        },
+        {
+          "title": "生炒上海青",
+          "path": "CookLikeHOC/炒菜/生炒上海青.md"
+        },
+        {
+          "title": "酸辣海带丝",
+          "path": "CookLikeHOC/炒菜/酸辣海带丝.md"
+        },
+        {
+          "title": "酸辣土豆丝",
+          "path": "CookLikeHOC/炒菜/酸辣土豆丝.md"
+        },
+        {
+          "title": "蒜泥菠菜",
+          "path": "CookLikeHOC/炒菜/蒜泥菠菜.md"
+        },
+        {
+          "title": "笋子鸡丁盖饭",
+          "path": "CookLikeHOC/炒菜/笋子鸡丁盖饭.md"
+        },
+        {
+          "title": "笋子烧肉",
+          "path": "CookLikeHOC/炒菜/笋子烧肉.md"
+        },
+        {
+          "title": "糖醋排骨",
+          "path": "CookLikeHOC/炒菜/糖醋排骨.md"
+        },
+        {
+          "title": "外婆菜炒鸡蛋",
+          "path": "CookLikeHOC/炒菜/外婆菜炒鸡蛋.md"
+        },
+        {
+          "title": "莴笋丝炒鸡蛋",
+          "path": "CookLikeHOC/炒菜/莴笋丝炒鸡蛋.md"
+        },
+        {
+          "title": "西红柿炒鸡蛋",
+          "path": "CookLikeHOC/炒菜/西红柿炒鸡蛋.md"
+        },
+        {
+          "title": "香椿炒鸡蛋",
+          "path": "CookLikeHOC/炒菜/香椿炒鸡蛋.md"
+        },
+        {
+          "title": "小炒河虾",
+          "path": "CookLikeHOC/炒菜/小炒河虾.md"
+        },
+        {
+          "title": "小炒花菜",
+          "path": "CookLikeHOC/炒菜/小炒花菜.md"
+        },
+        {
+          "title": "小炒黄牛肉",
+          "path": "CookLikeHOC/炒菜/小炒黄牛肉.md"
+        },
+        {
+          "title": "小炒鸡丁",
+          "path": "CookLikeHOC/炒菜/小炒鸡丁.md"
+        },
+        {
+          "title": "小炒面筋",
+          "path": "CookLikeHOC/炒菜/小炒面筋.md"
+        },
+        {
+          "title": "小炒香干",
+          "path": "CookLikeHOC/炒菜/小炒香干.md"
+        },
+        {
+          "title": "油渣大白菜",
+          "path": "CookLikeHOC/炒菜/油渣大白菜.md"
+        },
+        {
+          "title": "鱼香肉丝",
+          "path": "CookLikeHOC/炒菜/鱼香肉丝.md"
+        },
+        {
+          "title": "鱼香肉丝盖饭",
+          "path": "CookLikeHOC/炒菜/鱼香肉丝盖饭.md"
+        },
+        {
+          "title": "芋儿鸡",
+          "path": "CookLikeHOC/炒菜/芋儿鸡.md"
+        }
+      ]
+    },
+    {
+      "category": "炖菜",
+      "items": [
+        {
+          "title": "白菜炖豆腐",
+          "path": "CookLikeHOC/炖菜/白菜炖豆腐.md"
+        },
+        {
+          "title": "红烧鱼块",
+          "path": "CookLikeHOC/炖菜/红烧鱼块.md"
+        },
+        {
+          "title": "鸡血汤",
+          "path": "CookLikeHOC/炖菜/鸡血汤.md"
+        },
+        {
+          "title": "麻婆豆腐",
+          "path": "CookLikeHOC/炖菜/麻婆豆腐.md"
+        },
+        {
+          "title": "梅干菜凤爪翅",
+          "path": "CookLikeHOC/炖菜/梅干菜凤爪翅.md"
+        },
+        {
+          "title": "土豆牛腩",
+          "path": "CookLikeHOC/炖菜/土豆牛腩.md"
+        },
+        {
+          "title": "香辣鸡杂",
+          "path": "CookLikeHOC/炖菜/香辣鸡杂.md"
+        }
+      ]
+    },
+    {
+      "category": "烤类",
+      "items": [
+        {
+          "title": "烤肠",
+          "path": "CookLikeHOC/烤类/烤肠.md"
+        }
+      ]
+    },
+    {
+      "category": "凉拌",
+      "items": [
+        {
+          "title": "口水鸡",
+          "path": "CookLikeHOC/凉拌/口水鸡.md"
+        },
+        {
+          "title": "凉拌莴笋丝",
+          "path": "CookLikeHOC/凉拌/凉拌莴笋丝.md"
+        },
+        {
+          "title": "柠檬凤爪",
+          "path": "CookLikeHOC/凉拌/柠檬凤爪.md"
+        },
+        {
+          "title": "西芹花生米",
+          "path": "CookLikeHOC/凉拌/西芹花生米.md"
+        }
+      ]
+    },
+    {
+      "category": "卤菜",
+      "items": [
+        {
+          "title": "嗨嗨桶（红油串串）",
+          "path": "CookLikeHOC/卤菜/嗨嗨桶（红油串串）.md"
+        },
+        {
+          "title": "卤翅根",
+          "path": "CookLikeHOC/卤菜/卤翅根.md"
+        },
+        {
+          "title": "卤大排",
+          "path": "CookLikeHOC/卤菜/卤大排.md"
+        },
+        {
+          "title": "卤方干",
+          "path": "CookLikeHOC/卤菜/卤方干.md"
+        },
+        {
+          "title": "卤鸡腿",
+          "path": "CookLikeHOC/卤菜/卤鸡腿.md"
+        },
+        {
+          "title": "卤鸡爪",
+          "path": "CookLikeHOC/卤菜/卤鸡爪.md"
+        }
+      ]
+    },
+    {
+      "category": "配料",
+      "items": [
+        {
+          "title": "炒菜基料",
+          "path": "CookLikeHOC/配料/炒菜基料.md"
+        },
+        {
+          "title": "调味料（小炒鸡丁）",
+          "path": "CookLikeHOC/配料/调味料（小炒鸡丁）.md"
+        },
+        {
+          "title": "剁椒酱",
+          "path": "CookLikeHOC/配料/剁椒酱.md"
+        },
+        {
+          "title": "剁椒鱼头料",
+          "path": "CookLikeHOC/配料/剁椒鱼头料.md"
+        },
+        {
+          "title": "肥肠鸡酱料",
+          "path": "CookLikeHOC/配料/肥肠鸡酱料.md"
+        },
+        {
+          "title": "风干牛肉酱料",
+          "path": "CookLikeHOC/配料/风干牛肉酱料.md"
+        },
+        {
+          "title": "鸡翅调料",
+          "path": "CookLikeHOC/配料/鸡翅调料.md"
+        },
+        {
+          "title": "鸡油料",
+          "path": "CookLikeHOC/配料/鸡油料.md"
+        },
+        {
+          "title": "鸡杂料",
+          "path": "CookLikeHOC/配料/鸡杂料.md"
+        },
+        {
+          "title": "鸡汁辣鱼料",
+          "path": "CookLikeHOC/配料/鸡汁辣鱼料.md"
+        },
+        {
+          "title": "家常小炒料",
+          "path": "CookLikeHOC/配料/家常小炒料.md"
+        },
+        {
+          "title": "酱蒸白干料",
+          "path": "CookLikeHOC/配料/酱蒸白干料.md"
+        },
+        {
+          "title": "麻婆豆腐料",
+          "path": "CookLikeHOC/配料/麻婆豆腐料.md"
+        },
+        {
+          "title": "三鲜豆腐汤料",
+          "path": "CookLikeHOC/配料/三鲜豆腐汤料.md"
+        },
+        {
+          "title": "小炒肉调料",
+          "path": "CookLikeHOC/配料/小炒肉调料.md"
+        },
+        {
+          "title": "小炒肉调味汁",
+          "path": "CookLikeHOC/配料/小炒肉调味汁.md"
+        },
+        {
+          "title": "血旺料",
+          "path": "CookLikeHOC/配料/血旺料.md"
+        },
+        {
+          "title": "油焖茄子料",
+          "path": "CookLikeHOC/配料/油焖茄子料.md"
+        }
+      ]
+    },
+    {
+      "category": "砂锅菜",
+      "items": [
+        {
+          "title": "砂锅番茄米线",
+          "path": "CookLikeHOC/砂锅菜/砂锅番茄米线.md"
+        },
+        {
+          "title": "砂锅腐竹",
+          "path": "CookLikeHOC/砂锅菜/砂锅腐竹.md"
+        },
+        {
+          "title": "砂锅木瓜",
+          "path": "CookLikeHOC/砂锅菜/砂锅木瓜.md"
+        },
+        {
+          "title": "砂锅牛杂煲",
+          "path": "CookLikeHOC/砂锅菜/砂锅牛杂煲.md"
+        },
+        {
+          "title": "砂锅泡椒鸡米花米线",
+          "path": "CookLikeHOC/砂锅菜/砂锅泡椒鸡米花米线.md"
+        },
+        {
+          "title": "砂锅三鲜豆腐",
+          "path": "CookLikeHOC/砂锅菜/砂锅三鲜豆腐.md"
+        },
+        {
+          "title": "砂锅酸菜鱼",
+          "path": "CookLikeHOC/砂锅菜/砂锅酸菜鱼.md"
+        },
+        {
+          "title": "砂锅蒜蓉粉丝虾",
+          "path": "CookLikeHOC/砂锅菜/砂锅蒜蓉粉丝虾.md"
+        },
+        {
+          "title": "砂锅盐焗鸡",
+          "path": "CookLikeHOC/砂锅菜/砂锅盐焗鸡.md"
+        },
+        {
+          "title": "砂锅原味鸡汤米线",
+          "path": "CookLikeHOC/砂锅菜/砂锅原味鸡汤米线.md"
+        },
+        {
+          "title": "酸菜肥肠煲",
+          "path": "CookLikeHOC/砂锅菜/酸菜肥肠煲.md"
+        }
+      ]
+    },
+    {
+      "category": "汤",
+      "items": [
+        {
+          "title": "肥西老母鸡汤（单品）",
+          "path": "CookLikeHOC/汤/肥西老母鸡汤（单品）.md"
+        },
+        {
+          "title": "老鸡汤",
+          "path": "CookLikeHOC/汤/老鸡汤.md"
+        },
+        {
+          "title": "竹荪鹿茸菇鸡汤",
+          "path": "CookLikeHOC/汤/竹荪鹿茸菇鸡汤.md"
+        }
+      ]
+    },
+    {
+      "category": "烫菜",
+      "items": [
+        {
+          "title": "菠菜蛋皮丝",
+          "path": "CookLikeHOC/烫菜/菠菜蛋皮丝.md"
+        },
+        {
+          "title": "葱油拌面",
+          "path": "CookLikeHOC/烫菜/葱油拌面.md"
+        },
+        {
+          "title": "葱油菜苔",
+          "path": "CookLikeHOC/烫菜/葱油菜苔.md"
+        },
+        {
+          "title": "葱油菜心",
+          "path": "CookLikeHOC/烫菜/葱油菜心.md"
+        },
+        {
+          "title": "鸡汤娃娃菜",
+          "path": "CookLikeHOC/烫菜/鸡汤娃娃菜.md"
+        },
+        {
+          "title": "浇汁西兰花",
+          "path": "CookLikeHOC/烫菜/浇汁西兰花.md"
+        },
+        {
+          "title": "麻辣鸡块",
+          "path": "CookLikeHOC/烫菜/麻辣鸡块.md"
+        },
+        {
+          "title": "特色热干面",
+          "path": "CookLikeHOC/烫菜/特色热干面.md"
+        },
+        {
+          "title": "香脆木耳",
+          "path": "CookLikeHOC/烫菜/香脆木耳.md"
+        }
+      ]
+    },
+    {
+      "category": "饮品",
+      "items": [
+        {
+          "title": "鸡笼香柠檬茶",
+          "path": "CookLikeHOC/饮品/鸡笼香柠檬茶.md"
+        },
+        {
+          "title": "苹果山楂红茶",
+          "path": "CookLikeHOC/饮品/苹果山楂红茶.md"
+        },
+        {
+          "title": "热奶茶",
+          "path": "CookLikeHOC/饮品/热奶茶.md"
+        },
+        {
+          "title": "原味豆浆",
+          "path": "CookLikeHOC/饮品/原味豆浆.md"
+        }
+      ]
+    },
+    {
+      "category": "早餐",
+      "items": [
+        {
+          "title": "白米粥",
+          "path": "CookLikeHOC/早餐/白米粥.md"
+        },
+        {
+          "title": "包子",
+          "path": "CookLikeHOC/早餐/包子.md"
+        },
+        {
+          "title": "茶叶蛋",
+          "path": "CookLikeHOC/早餐/茶叶蛋.md"
+        },
+        {
+          "title": "赤豆糊元宵",
+          "path": "CookLikeHOC/早餐/赤豆糊元宵.md"
+        },
+        {
+          "title": "蛋饼",
+          "path": "CookLikeHOC/早餐/蛋饼.md"
+        },
+        {
+          "title": "饭团",
+          "path": "CookLikeHOC/早餐/饭团.md"
+        },
+        {
+          "title": "花卷",
+          "path": "CookLikeHOC/早餐/花卷.md"
+        },
+        {
+          "title": "鸡汁汤包",
+          "path": "CookLikeHOC/早餐/鸡汁汤包.md"
+        },
+        {
+          "title": "荠菜鲜肉蒸饺",
+          "path": "CookLikeHOC/早餐/荠菜鲜肉蒸饺.md"
+        },
+        {
+          "title": "馒头",
+          "path": "CookLikeHOC/早餐/馒头.md"
+        },
+        {
+          "title": "牛肉盒",
+          "path": "CookLikeHOC/早餐/牛肉盒.md"
+        },
+        {
+          "title": "手工春卷",
+          "path": "CookLikeHOC/早餐/手工春卷.md"
+        },
+        {
+          "title": "手工烧麦",
+          "path": "CookLikeHOC/早餐/手工烧麦.md"
+        },
+        {
+          "title": "水煮蛋",
+          "path": "CookLikeHOC/早餐/水煮蛋.md"
+        },
+        {
+          "title": "酥皮萝卜丝馅饼",
+          "path": "CookLikeHOC/早餐/酥皮萝卜丝馅饼.md"
+        },
+        {
+          "title": "现熬豆粥",
+          "path": "CookLikeHOC/早餐/现熬豆粥.md"
+        },
+        {
+          "title": "现炸大油条",
+          "path": "CookLikeHOC/早餐/现炸大油条.md"
+        },
+        {
+          "title": "香酥牛肉饼",
+          "path": "CookLikeHOC/早餐/香酥牛肉饼.md"
+        },
+        {
+          "title": "小米南瓜粥",
+          "path": "CookLikeHOC/早餐/小米南瓜粥.md"
+        },
+        {
+          "title": "粢饭糕",
+          "path": "CookLikeHOC/早餐/粢饭糕.md"
+        }
+      ]
+    },
+    {
+      "category": "炸品",
+      "items": [
+        {
+          "title": "傲椒风味翅尖",
+          "path": "CookLikeHOC/炸品/傲椒风味翅尖.md"
+        },
+        {
+          "title": "棒棒虾",
+          "path": "CookLikeHOC/炸品/棒棒虾.md"
+        },
+        {
+          "title": "嗨嗨桶（炸物桶）",
+          "path": "CookLikeHOC/炸品/嗨嗨桶（炸物桶）.md"
+        },
+        {
+          "title": "鸡肉洋葱圈",
+          "path": "CookLikeHOC/炸品/鸡肉洋葱圈.md"
+        },
+        {
+          "title": "生炸大鸡腿",
+          "path": "CookLikeHOC/炸品/生炸大鸡腿.md"
+        },
+        {
+          "title": "手枪大鸡腿",
+          "path": "CookLikeHOC/炸品/手枪大鸡腿.md"
+        },
+        {
+          "title": "香脆薯饼",
+          "path": "CookLikeHOC/炸品/香脆薯饼.md"
+        },
+        {
+          "title": "香酥鸡米花",
+          "path": "CookLikeHOC/炸品/香酥鸡米花.md"
+        },
+        {
+          "title": "香芋地瓜丸",
+          "path": "CookLikeHOC/炸品/香芋地瓜丸.md"
+        },
+        {
+          "title": "心形鸡排",
+          "path": "CookLikeHOC/炸品/心形鸡排.md"
+        },
+        {
+          "title": "炸鸡排",
+          "path": "CookLikeHOC/炸品/炸鸡排.md"
+        },
+        {
+          "title": "炸鸡腿",
+          "path": "CookLikeHOC/炸品/炸鸡腿.md"
+        }
+      ]
+    },
+    {
+      "category": "蒸菜",
+      "items": [
+        {
+          "title": "奥尔良鸡翅",
+          "path": "CookLikeHOC/蒸菜/奥尔良鸡翅.md"
+        },
+        {
+          "title": "白切鸡",
+          "path": "CookLikeHOC/蒸菜/白切鸡.md"
+        },
+        {
+          "title": "葱油鸡",
+          "path": "CookLikeHOC/蒸菜/葱油鸡.md"
+        },
+        {
+          "title": "粗粮盒",
+          "path": "CookLikeHOC/蒸菜/粗粮盒.md"
+        },
+        {
+          "title": "剁椒鱼头",
+          "path": "CookLikeHOC/蒸菜/剁椒鱼头.md"
+        },
+        {
+          "title": "粉蒸肉",
+          "path": "CookLikeHOC/蒸菜/粉蒸肉.md"
+        },
+        {
+          "title": "风干牛肉蒸白干",
+          "path": "CookLikeHOC/蒸菜/风干牛肉蒸白干.md"
+        },
+        {
+          "title": "凤爪蒸豆米",
+          "path": "CookLikeHOC/蒸菜/凤爪蒸豆米.md"
+        },
+        {
+          "title": "胡萝卜牛肉",
+          "path": "CookLikeHOC/蒸菜/胡萝卜牛肉.md"
+        },
+        {
+          "title": "活珠子",
+          "path": "CookLikeHOC/蒸菜/活珠子.md"
+        },
+        {
+          "title": "鸡汁辣鱼",
+          "path": "CookLikeHOC/蒸菜/鸡汁辣鱼.md"
+        },
+        {
+          "title": "酱椒蒜香片片鱼",
+          "path": "CookLikeHOC/蒸菜/酱椒蒜香片片鱼.md"
+        },
+        {
+          "title": "酱香小河虾",
+          "path": "CookLikeHOC/蒸菜/酱香小河虾.md"
+        },
+        {
+          "title": "酱蒸白干",
+          "path": "CookLikeHOC/蒸菜/酱蒸白干.md"
+        },
+        {
+          "title": "酱蒸豆腐",
+          "path": "CookLikeHOC/蒸菜/酱蒸豆腐.md"
+        },
+        {
+          "title": "梅菜扣肉",
+          "path": "CookLikeHOC/蒸菜/梅菜扣肉.md"
+        },
+        {
+          "title": "秘汁卤肉饭",
+          "path": "CookLikeHOC/蒸菜/秘汁卤肉饭.md"
+        },
+        {
+          "title": "蜜汁南瓜",
+          "path": "CookLikeHOC/蒸菜/蜜汁南瓜.md"
+        },
+        {
+          "title": "农家蒸蛋",
+          "path": "CookLikeHOC/蒸菜/农家蒸蛋.md"
+        },
+        {
+          "title": "肉饼蒸蛋",
+          "path": "CookLikeHOC/蒸菜/肉饼蒸蛋.md"
+        },
+        {
+          "title": "三色虾仁",
+          "path": "CookLikeHOC/蒸菜/三色虾仁.md"
+        },
+        {
+          "title": "松糕",
+          "path": "CookLikeHOC/蒸菜/松糕.md"
+        },
+        {
+          "title": "蒜蓉粉丝虾",
+          "path": "CookLikeHOC/蒸菜/蒜蓉粉丝虾.md"
+        },
+        {
+          "title": "蒜蓉娃娃菜",
+          "path": "CookLikeHOC/蒸菜/蒜蓉娃娃菜.md"
+        },
+        {
+          "title": "虾仁蒸鸡蛋",
+          "path": "CookLikeHOC/蒸菜/虾仁蒸鸡蛋.md"
+        },
+        {
+          "title": "香肠蒸豆米",
+          "path": "CookLikeHOC/蒸菜/香肠蒸豆米.md"
+        },
+        {
+          "title": "香辣血旺",
+          "path": "CookLikeHOC/蒸菜/香辣血旺.md"
+        },
+        {
+          "title": "香芋蒸排骨",
+          "path": "CookLikeHOC/蒸菜/香芋蒸排骨.md"
+        },
+        {
+          "title": "竹笋蒸鸡翅",
+          "path": "CookLikeHOC/蒸菜/竹笋蒸鸡翅.md"
+        }
+      ]
+    },
+    {
+      "category": "主食",
+      "items": [
+        {
+          "title": "大大大块牛腩面",
+          "path": "CookLikeHOC/主食/大大大块牛腩面.md"
+        },
+        {
+          "title": "大排面",
+          "path": "CookLikeHOC/主食/大排面.md"
+        },
+        {
+          "title": "大盘肥肠鸡手工面",
+          "path": "CookLikeHOC/主食/大盘肥肠鸡手工面.md"
+        },
+        {
+          "title": "番茄鸡蛋面",
+          "path": "CookLikeHOC/主食/番茄鸡蛋面.md"
+        },
+        {
+          "title": "肥西老母鸡汤面",
+          "path": "CookLikeHOC/主食/肥西老母鸡汤面.md"
+        },
+        {
+          "title": "老鸡扬米面",
+          "path": "CookLikeHOC/主食/老鸡扬米面.md"
+        },
+        {
+          "title": "米饭",
+          "path": "CookLikeHOC/主食/米饭.md"
+        },
+        {
+          "title": "浓香整块鸡汤面",
+          "path": "CookLikeHOC/主食/浓香整块鸡汤面.md"
+        },
+        {
+          "title": "砂锅荠菜鲜肉馄饨",
+          "path": "CookLikeHOC/主食/砂锅荠菜鲜肉馄饨.md"
+        },
+        {
+          "title": "素面",
+          "path": "CookLikeHOC/主食/素面.md"
+        },
+        {
+          "title": "特色鸡汤馄饨",
+          "path": "CookLikeHOC/主食/特色鸡汤馄饨.md"
+        },
+        {
+          "title": "香菇鸡汤面",
+          "path": "CookLikeHOC/主食/香菇鸡汤面.md"
+        },
+        {
+          "title": "香辣鸡丁拌面",
+          "path": "CookLikeHOC/主食/香辣鸡丁拌面.md"
+        },
+        {
+          "title": "香辣牛肉面",
+          "path": "CookLikeHOC/主食/香辣牛肉面.md"
+        },
+        {
+          "title": "雪菜肉丝面",
+          "path": "CookLikeHOC/主食/雪菜肉丝面.md"
+        },
+        {
+          "title": "杂粮饭",
+          "path": "CookLikeHOC/主食/杂粮饭.md"
+        },
+        {
+          "title": "炸鸡腿时蔬面",
+          "path": "CookLikeHOC/主食/炸鸡腿时蔬面.md"
+        }
+      ]
+    },
+    {
+      "category": "煮锅",
+      "items": [
+        {
+          "title": "嗨嗨锅（番茄肥牛锅）",
+          "path": "CookLikeHOC/煮锅/嗨嗨锅（番茄肥牛锅）.md"
+        },
+        {
+          "title": "嗨嗨锅（泡椒鸡米花米线）",
+          "path": "CookLikeHOC/煮锅/嗨嗨锅（泡椒鸡米花米线）.md"
+        },
+        {
+          "title": "嗨嗨锅（酸菜鱼米线）",
+          "path": "CookLikeHOC/煮锅/嗨嗨锅（酸菜鱼米线）.md"
+        },
+        {
+          "title": "嗨嗨锅（鲜蔬锅）",
+          "path": "CookLikeHOC/煮锅/嗨嗨锅（鲜蔬锅）.md"
+        },
+        {
+          "title": "金汤酸菜鱼",
+          "path": "CookLikeHOC/煮锅/金汤酸菜鱼.md"
+        },
+        {
+          "title": "金汤酸菜鱼（大份）",
+          "path": "CookLikeHOC/煮锅/金汤酸菜鱼（大份）.md"
+        },
+        {
+          "title": "冒烤鸭",
+          "path": "CookLikeHOC/煮锅/冒烤鸭.md"
+        }
+      ]
+    }
+  ]
+}

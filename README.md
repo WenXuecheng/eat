@@ -81,3 +81,40 @@ function loadRestaurants2GIS(center, radiusMeters, apiKey) {
 
 - 该项目不包含构建流程，纯静态资源即可运行。
 - 若要自定义 UI/交互，可直接修改 `assets/style.css` 与 `assets/app.js`。
+
+## 导航与页面
+
+- 首页：`index.html`
+- 地图页：`map.html`
+- 美食制作：`cook.html`
+
+## 直达菜谱链接（CookLikeHOC）
+
+本项目支持以链接直接访问菜谱内容，路径格式：
+
+- `/CookLikeHOC/分类/菜名`
+
+例如：
+
+- `/CookLikeHOC/炒菜/西红柿炒鸡蛋`
+
+部署在 GitHub Pages 等静态托管时，若该路径没有实际 HTML 文件，会走站点根目录的 `404.html`，我们在其中实现了客户端渲染：
+
+- 解析当前路径中的“分类/菜名”
+- 尝试加载 `CookLikeHOC/分类/菜名.md`
+- 将 Markdown 渲染为 HTML 展示
+
+注意：
+
+- 请使用“无 `.md` 后缀”的链接形式，以便触发 404 回退并由前端渲染。
+- 在 `cook.html` 中查看菜谱时，页面提供“直达链接/复制链接”按钮，方便分享。
+
+## 更新菜谱清单
+
+清单文件：`assets/cook_manifest.json`。当 `CookLikeHOC` 目录新增/删除菜谱时，运行：
+
+```
+npm run gen:cook
+```
+
+脚本会自动扫描分类与 Markdown 文件，按中文名排序后写入清单。

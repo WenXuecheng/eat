@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>美食制作 · 今天吃啥</title>
+    <link rel="stylesheet" href="assets/style.css" />
+  </head>
+  <body>
+    <link rel="stylesheet" href="assets/galaxy.css" />
+    <div id="galaxy" class="galaxy-bg"></div>
+
+    <header class="rb-header">
+      <div class="rb-container rb-header-inner">
+        <div class="rb-brand">
+          <span class="rb-logo">👨🏻‍🍳</span>
+          <span class="rb-brand-text">美食制作</span>
+        </div>
+        <div class="rb-brand-sub" style="display:flex; gap:12px; align-items:center;">
+          <a href="index.html" class="rb-link" style="color: var(--rb-text); text-decoration: underline;">返回首页</a>
+          <span class="rb-muted">·</span>
+          <a href="map.html" class="rb-link" style="color: var(--rb-text); text-decoration: underline;">进阶地图页</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="rb-container rb-stack-lg">
+      <section class="rb-grid rb-grid-gap" style="grid-template-columns: 260px 1fr; align-items: start;">
+        <!-- 左侧：分类栏 -->
+        <aside class="rb-card" style="padding:10px; position:sticky; top:72px; max-height: calc(100svh - 96px); overflow:auto;">
+          <div class="rb-label" style="margin-bottom:8px;">分类</div>
+          <div id="catList" class="rb-stack-md"></div>
+        </aside>
+
+        <!-- 右侧：内容区 -->
+        <section class="rb-stack-md">
+          <div class="rb-card rb-row rb-row-gap-sm" style="justify-content: space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+            <input id="dishSearch" class="rb-input" type="text" placeholder="搜索菜品（支持中文或拼音首字母）" style="flex:1; min-width: 200px;" />
+            <label class="rb-label" style="display:inline-flex; gap:6px; align-items:center; font-weight:400;">
+              <input id="globalSearch" type="checkbox" /> 全局搜索
+            </label>
+          </div>
+          <div id="catHeader" class="rb-card rb-stack-md">
+            <div class="rb-row" style="justify-content: space-between; align-items:center;">
+              <h3 id="catTitle" style="margin:0;">请选择分类</h3>
+              <div class="rb-muted" id="catCount">—</div>
+            </div>
+            <div class="rb-help">左侧选择分类，点击右侧菜品查看制作方法。</div>
+          </div>
+
+          <div id="dishList" class="rb-grid rb-grid-gap" style="grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));"></div>
+
+          <div id="dishPanel" class="rb-card hidden">
+            <div class="rb-row" style="justify-content: space-between; align-items:center;">
+              <h3 id="dishTitle" style="margin:0;">—</h3>
+              <div class="rb-row rb-row-gap-sm">
+                <a id="dishPermalink" class="rb-btn rb-btn-outline" target="_blank" rel="noopener">直达链接</a>
+                <button id="dishCopy" class="rb-btn rb-btn-ghost">复制链接</button>
+                <button id="dishClose" class="rb-btn rb-btn-outline">关闭</button>
+              </div>
+            </div>
+            <article id="dishContent" class="md-body" style="line-height: 1.75; margin-top:8px;"></article>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <footer class="rb-footer">
+      <div class="rb-container rb-footer-inner">
+        <div class="rb-muted">菜谱来源参考 CookLikeHOC 目录结构。</div>
+      </div>
+    </footer>
+
+    <script src="https://unpkg.com/ogl@0.0.107/dist/ogl.min.js"></script>
+    <script src="assets/galaxy.js"></script>
+    <style>
+      /* Minimal Markdown styles */
+      .md-body h1, .md-body h2, .md-body h3 { margin: 14px 0 8px; }
+      .md-body h1 { font-size: 22px; }
+      .md-body h2 { font-size: 18px; }
+      .md-body h3 { font-size: 16px; }
+      .md-body p { margin: 8px 0; }
+      .md-body ul, .md-body ol { margin: 8px 0 8px 22px; }
+      .md-body code { background: hsla(230 18% 14% / 0.5); border: 1px solid hsla(230 15% 85% / 0.08); border-radius: 6px; padding: 1px 6px; }
+      .md-body pre { background: hsla(230 18% 14% / 0.5); border: 1px solid hsla(230 15% 85% / 0.08); border-radius: 8px; padding: 10px; overflow: auto; }
+      .md-body pre code { background: transparent; border: 0; padding: 0; }
+      .md-body a { color: var(--rb-primary); text-decoration: none; }
+    </style>
+
+    <script>
+      (function(){
+        try {
+          const el = document.getElementById('galaxy');
+          if (el) {
+            window.__destroyGalaxy && window.__destroyGalaxy();
+            window.__destroyGalaxy = Galaxy(el, {
+              density: 1.1,
+              hueShift: 180,
+              speed: 1.0,
+              glowIntensity: 0.4,
+              saturation: 0.2,
+              twinkleIntensity: 0.4,
+              rotationSpeed: 0.05,
+              transparent: true,
+              mouseRepulsion: false
+            });
+          }
+        } catch (e) { console.warn('Galaxy init failed', e); }
+      })();
+    </script>
+
+    <script>
+      const els = {
+        catList: document.getElementById('catList'),
+        catTitle: document.getElementById('catTitle'),
+        catCount: document.getElementById('catCount'),
+        dishList: document.getElementById('dishList'),
+        dishPanel: document.getElementById('dishPanel'),
+        dishTitle: document.getElementById('dishTitle'),
+        dishContent: document.getElementById('dishContent'),
+        dishPermalink: document.getElementById('dishPermalink'),
+        dishCopy: document.getElementById('dishCopy'),
+        dishClose: document.getElementById('dishClose'),
+      };
+
+      let manifest = null;
+      let currentCatIdx = -1;
+      let indexAll = [];
+
+      init();
+
+      function init(){
+        fetch('assets/cook_manifest.json', { cache: 'no-cache' })
+          .then(r => r.json())
+          .then(data => { 
+            manifest = data; 
+            buildIndex();
+            bindSearch();
+            renderCats(); 
+            if (data.categories && data.categories.length) selectCat(0); 
+          })
+          .catch(err => {
+            console.error('加载清单失败', err);
+            if (els.catList) els.catList.innerHTML = '<div class="rb-help">未能加载清单，请确认 assets/cook_manifest.json 存在。</div>';
+          });
+        if (els.dishClose) els.dishClose.addEventListener('click', () => hideDishPanel());
+        if (els.dishCopy) els.dishCopy.addEventListener('click', copyPermalink);
+        // If hash contains #分类:菜名, open directly
+        try {
+          const m = location.hash && location.hash.slice(1).match(/([^:]+):(.+)/);
+          if (m) {
+            const cat = decodeURIComponent(m[1]);
+            const name = decodeURIComponent(m[2]);
+            const ci = (manifest?.categories||[]).findIndex(c=>c.category===cat);
+            if (ci>=0) { selectCat(ci); const it=(manifest.categories[ci].items||[]).find(x=>x.title===name); if (it) openDish(it, cat); }
+          }
+        } catch {}
+      }
+
+      function bindSearch(){
+        const input = document.getElementById('dishSearch');
+        const globalCk = document.getElementById('globalSearch');
+        if (!input) return;
+        let t = null;
+        function onChange(){
+          clearTimeout(t);
+          t = setTimeout(applySearch, 120);
+        }
+        input.addEventListener('input', onChange);
+        globalCk && globalCk.addEventListener('change', applySearch);
+      }
+
+      function buildIndex(){
+        indexAll = [];
+        try {
+          (manifest.categories||[]).forEach((c, ci) => {
+            (c.items||[]).forEach((it) => {
+              indexAll.push({
+                ...it,
+                _catIdx: ci,
+                _cat: c.category,
+                _initials: toInitials(it.title)
+              });
+            });
+          });
+        } catch(e) { console.warn('buildIndex failed', e); }
+      }
+
+      function renderCats(){
+        if (!manifest || !Array.isArray(manifest.categories)) return;
+        els.catList.innerHTML = '';
+        manifest.categories.forEach((c, idx) => {
+          const btn = document.createElement('button');
+          btn.className = 'rb-btn' + (idx === currentCatIdx ? ' rb-btn-primary' : '');
+          btn.style.width = '100%';
+          btn.style.justifyContent = 'flex-start';
+          btn.textContent = c.category + (Array.isArray(c.items) ? ` (${c.items.length})` : '');
+          btn.addEventListener('click', () => selectCat(idx));
+          els.catList.appendChild(btn);
+        });
+      }
+
+      function selectCat(idx){
+        currentCatIdx = idx;
+        renderCats();
+        hideDishPanel();
+        const c = manifest.categories[idx];
+        els.catTitle.textContent = c.category;
+        const items = c.items||[];
+        els.catCount.textContent = `菜品：${items.length} 道`;
+        const filtered = filteredItems(items);
+        renderDishes(filtered);
+      }
+
+      function renderDishes(items){
+        els.dishList.innerHTML = '';
+        items.forEach(it => {
+          const card = document.createElement('div');
+          card.className = 'rb-card';
+          card.style.cursor = 'pointer';
+          card.innerHTML = `<div style="font-weight:600;">${escapeHtml(it.title)}</div><div class="rb-muted" style="margin-top:6px;">点击查看制作方法</div>`;
+          card.addEventListener('click', () => openDish(it));
+          els.dishList.appendChild(card);
+        });
+      }
+
+      function openDish(it, catOverride){
+        const cat = catOverride ?? (manifest.categories[currentCatIdx]?.category || '');
+        els.dishTitle.textContent = it.title;
+        els.dishContent.innerHTML = '<div class="rb-muted">加载中…</div>';
+        els.dishPanel.classList.remove('hidden');
+        // Set permalink
+        const link = `${location.origin}/CookLikeHOC/${encodeURIComponent(cat)}/${encodeURIComponent(it.title)}`;
+        if (els.dishPermalink) els.dishPermalink.href = link;
+        fetch(it.path, { cache: 'no-cache' })
+          .then(r => r.ok ? r.text() : Promise.reject(new Error('HTTP '+r.status)))
+          .then(txt => {
+            els.dishContent.innerHTML = renderMarkdown(txt);
+            scrollToPanel();
+          })
+          .catch(err => {
+            console.error('加载菜谱失败', err);
+            els.dishContent.textContent = '加载失败，请稍后重试。';
+          });
+      }
+
+      function hideDishPanel(){ els.dishPanel.classList.add('hidden'); }
+      function copyPermalink(){
+        try {
+          const href = els.dishPermalink && els.dishPermalink.href;
+          if (!href) return;
+          navigator.clipboard.writeText(href).then(() => {
+            els.dishCopy.textContent = '已复制';
+            setTimeout(()=>{ try { els.dishCopy.textContent = '复制链接'; } catch {} }, 1200);
+          }).catch(()=>{});
+        } catch {}
+      }
+      function scrollToPanel(){ try { els.dishPanel.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch {}
+      }
+      function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c])); }
+
+      // Lightweight Markdown -> HTML renderer (headings, lists, bold/italic, code)
+      function renderMarkdown(md){
+        // Normalize newlines
+        md = md.replace(/\r\n?/g, '\n');
+        // Extract fenced code blocks first
+        const codeBlocks = [];
+        md = md.replace(/```([\s\S]*?)```/g, (m, code) => {
+          const idx = codeBlocks.push(code) - 1;
+          return `@@CODE${idx}@@`;
+        });
+        // Escape HTML globally before inline formatting
+        md = escapeHtml(md);
+        // Headings
+        md = md.replace(/^###\s+(.+)$/gm, '<h3>$1<\/h3>')
+               .replace(/^##\s+(.+)$/gm, '<h2>$1<\/h2>')
+               .replace(/^#\s+(.+)$/gm, '<h1>$1<\/h1>');
+        // Lists (unordered)
+        md = md.replace(/^(?:-\s+.+\n?)+/gm, (block) => {
+          const items = block.trim().split(/\n/).map(l => l.replace(/^[-*+]\s+/, '')).map(t=>`<li>${t}<\/li>`).join('');
+          return `<ul>${items}<\/ul>`;
+        });
+        // Ordered lists (1. 2. ...)
+        md = md.replace(/^(?:(?:\d+)\.\s+.+\n?)+/gm, (block) => {
+          const items = block.trim().split(/\n/).map(l => l.replace(/^\d+\.\s+/, '')).map(t=>`<li>${t}<\/li>`).join('');
+          return `<ol>${items}<\/ol>`;
+        });
+        // Bold and italic
+        md = md.replace(/\*\*(.+?)\*\*/g, '<strong>$1<\/strong>')
+               .replace(/\*(.+?)\*/g, '<em>$1<\/em>');
+        // Inline code
+        md = md.replace(/`([^`]+)`/g, '<code>$1<\/code>');
+        // Links
+        md = md.replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+\"([^\"]+)\")?\)/g, (m, text, url, title) => {
+          const t = title ? ` title=\"${title}\"` : '';
+          return `<a href=\"${url}\" target=\"_blank\" rel=\"noopener noreferrer\"${t}>${text}<\/a>`;
+        });
+        // Paragraphs: wrap remaining text blocks separated by 2+ newlines
+        md = md.split(/\n{2,}/).map(chunk => {
+          if (/^\s*<(h\d|ul|ol|pre|blockquote)/i.test(chunk)) return chunk; // already block-level
+          const lines = chunk.split(/\n/).filter(Boolean);
+          if (!lines.length) return '';
+          return '<p>' + lines.join('<br>') + '<\/p>';
+        }).join('\n');
+        // Restore fenced code blocks
+        md = md.replace(/@@CODE(\d+)@@/g, (m, i) => `<pre><code>${escapeHtml(codeBlocks[i] || '')}<\/code><\/pre>`);
+        return md;
+      }
+
+      // --- Search helpers ---
+      function applySearch(){
+        const input = document.getElementById('dishSearch');
+        const globalCk = document.getElementById('globalSearch');
+        const q = (input && input.value || '').trim();
+        const isGlobal = !!(globalCk && globalCk.checked);
+        if (!q){
+          if (currentCatIdx >= 0) return selectCat(currentCatIdx);
+          return;
+        }
+        const data = isGlobal ? indexAll : (manifest.categories[currentCatIdx]?.items||[]).map(it => ({...it, _catIdx: currentCatIdx, _cat: manifest.categories[currentCatIdx].category, _initials: toInitials(it.title)}));
+        const res = filteredItems(data, q);
+        // Render
+        els.catTitle.textContent = isGlobal ? `搜索结果：${q}` : manifest.categories[currentCatIdx].category + `（搜索）`;
+        els.catCount.textContent = `匹配：${res.length} 道`;
+        renderDishes(res);
+      }
+
+      function filteredItems(items, q){
+        const input = document.getElementById('dishSearch');
+        const query = (q != null ? q : (input && input.value || '')).trim();
+        if (!query) return items.slice();
+        const ql = query.toLowerCase();
+        const isLatin = /[a-z]/i.test(ql) && !/[\u4e00-\u9fff]/.test(query);
+        return items.filter((it) => {
+          const title = it.title || '';
+          if (title.includes(query)) return true; // 中文直接子串
+          if (isLatin) {
+            const initials = (it._initials != null ? it._initials : toInitials(title));
+            if (initials.includes(ql)) return true; // 拼音首字母
+          }
+          return false;
+        });
+      }
+
+      // 拼音首字母：基于中文排序边界近似映射，无需词库
+      const INITIAL_BOUNDARIES = [
+        ['啊','a'],['芭','b'],['嚓','c'],['搭','d'],['蛾','e'],['发','f'],['噶','g'],['哈','h'],
+        ['击','j'],['喀','k'],['垃','l'],['妈','m'],['拿','n'],['哦','o'],['啪','p'],['期','q'],
+        ['然','r'],['撒','s'],['塌','t'],['挖','w'],['昔','x'],['压','y'],['匝','z']
+      ];
+      function initialOfChar(ch){
+        // Latin/numeric
+        if (/^[a-z0-9]$/i.test(ch)) return ch.toLowerCase();
+        // Chinese approx by localeCompare boundaries
+        for (let i = INITIAL_BOUNDARIES.length - 1; i >= 0; i--) {
+          const [b, ini] = INITIAL_BOUNDARIES[i];
+          try {
+            if (ch.localeCompare(b, 'zh-Hans-CN') >= 0) return ini;
+          } catch {}
+        }
+        return '';
+      }
+      function toInitials(text){
+        let out = '';
+        for (const ch of String(text)) {
+          out += initialOfChar(ch);
+        }
+        return out.toLowerCase();
+      }
+    </script>
+  </body>
+  </html>

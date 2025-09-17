@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>页面未找到 · 今天吃啥</title>
+    <link rel="stylesheet" href="assets/style.css" />
+  </head>
+  <body>
+    <link rel="stylesheet" href="assets/galaxy.css" />
+    <div id="galaxy" class="galaxy-bg"></div>
+    <header class="rb-header">
+      <div class="rb-container rb-header-inner">
+        <div class="rb-brand">
+          <span class="rb-logo">🔍</span>
+          <span class="rb-brand-text">页面未找到</span>
+        </div>
+        <div class="rb-brand-sub" style="display:flex; gap:12px; align-items:center;">
+          <a href="/" class="rb-link" style="color: var(--rb-text); text-decoration: underline;">首页</a>
+          <span class="rb-muted">·</span>
+          <a href="/cook.html" class="rb-link" style="color: var(--rb-text); text-decoration: underline;">美食制作</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="rb-container rb-stack-lg">
+      <section class="rb-card rb-stack-md">
+        <h3 style="margin:0">尝试渲染直达菜谱链接</h3>
+        <div class="rb-help">支持形如 /CookLikeHOC/分类/菜名 的路径。</div>
+        <div id="status" class="rb-muted">解析中…</div>
+      </section>
+      <section id="dishPanel" class="rb-card hidden">
+        <div class="rb-row" style="justify-content: space-between; align-items:center;">
+          <h3 id="dishTitle" style="margin:0;">—</h3>
+          <a id="openCook" class="rb-btn rb-btn-outline" href="/cook.html">在美食制作中打开</a>
+        </div>
+        <article id="dishContent" class="md-body" style="line-height: 1.75; margin-top:8px;"></article>
+      </section>
+      <section id="notFound" class="rb-card hidden">
+        <div class="rb-stack-md">
+          <div class="rb-help">未能识别该链接或菜谱不存在。</div>
+          <div>
+            <a href="/cook.html" class="rb-btn rb-btn-primary">前往美食制作</a>
+            <a href="/index.html" class="rb-btn rb-btn-outline">返回首页</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="https://unpkg.com/ogl@0.0.107/dist/ogl.min.js"></script>
+    <script src="assets/galaxy.js"></script>
+    <style>
+      .md-body h1, .md-body h2, .md-body h3 { margin: 14px 0 8px; }
+      .md-body h1 { font-size: 22px; }
+      .md-body h2 { font-size: 18px; }
+      .md-body h3 { font-size: 16px; }
+      .md-body p { margin: 8px 0; }
+      .md-body ul, .md-body ol { margin: 8px 0 8px 22px; }
+      .md-body code { background: hsla(230 18% 14% / 0.5); border: 1px solid hsla(230 15% 85% / 0.08); border-radius: 6px; padding: 1px 6px; }
+      .md-body pre { background: hsla(230 18% 14% / 0.5); border: 1px solid hsla(230 15% 85% / 0.08); border-radius: 8px; padding: 10px; overflow: auto; }
+      .md-body pre code { background: transparent; border: 0; padding: 0; }
+      .md-body a { color: var(--rb-primary); text-decoration: none; }
+    </style>
+    <script>
+      (function(){
+        try {
+          const el = document.getElementById('galaxy');
+          if (el) {
+            window.__destroyGalaxy404 && window.__destroyGalaxy404();
+            window.__destroyGalaxy404 = Galaxy(el, { density: 1.1, hueShift: 180, speed: 1.0, glowIntensity: 0.4, saturation: 0.2, twinkleIntensity: 0.4, rotationSpeed: 0.05, transparent: true, mouseRepulsion: false });
+          }
+        } catch(e) {}
+      })();
+
+      const els = {
+        status: document.getElementById('status'),
+        panel: document.getElementById('dishPanel'),
+        title: document.getElementById('dishTitle'),
+        content: document.getElementById('dishContent'),
+        openCook: document.getElementById('openCook'),
+        notFound: document.getElementById('notFound'),
+      };
+
+      const match = (function(){
+        try {
+          const path = decodeURI(location.pathname);
+          // match /.../CookLikeHOC/<cat>/<name>
+          const m = path.match(/\/(?:[^/]+\/)*CookLikeHOC\/([^/]+)\/([^/?#]+)/);
+          if (!m) return null;
+          return { cat: m[1], name: m[2] };
+        } catch { return null; }
+      })();
+
+      if (!match){
+        els.status.textContent = '不是菜谱直达链接。';
+        els.notFound.classList.remove('hidden');
+      } else {
+        const mdPath = ['CookLikeHOC', match.cat, match.name + '.md'].map(encodeURI).join('/');
+        els.status.textContent = `加载：${mdPath}`;
+        els.title.textContent = `${match.cat} · ${match.name}`;
+        els.openCook.href = `/cook.html#${encodeURIComponent(match.cat)}:${encodeURIComponent(match.name)}`;
+        fetch(mdPath, { cache: 'no-cache' })
+          .then(r => r.ok ? r.text() : Promise.reject(new Error('HTTP '+r.status)))
+          .then(txt => { els.content.innerHTML = renderMarkdown(txt); els.panel.classList.remove('hidden'); els.status.textContent = '—'; })
+          .catch(err => { console.warn(err); els.status.textContent = '未找到该菜谱。'; els.notFound.classList.remove('hidden'); });
+      }
+
+      function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c])); }
+      function renderMarkdown(md){
+        md = md.replace(/\r\n?/g, '\n');
+        const codeBlocks = [];
+        md = md.replace(/```([\s\S]*?)```/g, (m, code) => { const i = codeBlocks.push(code) - 1; return `@@CODE${i}@@`; });
+        md = escapeHtml(md);
+        md = md.replace(/^###\s+(.+)$/gm, '<h3>$1<\/h3>')
+               .replace(/^##\s+(.+)$/gm, '<h2>$1<\/h2>')
+               .replace(/^#\s+(.+)$/gm, '<h1>$1<\/h1>');
+        md = md.replace(/^(?:-\s+.+\n?)+/gm, (block) => '<ul>' + block.trim().split(/\n/).map(l=>'<li>'+l.replace(/^[-*+]\s+/, '')+'<\/li>').join('') + '<\/ul>');
+        md = md.replace(/^(?:(?:\d+)\.\s+.+\n?)+/gm, (block) => '<ol>' + block.trim().split(/\n/).map(l=>'<li>'+l.replace(/^\d+\.\s+/, '')+'<\/li>').join('') + '<\/ol>');
+        md = md.replace(/\*\*(.+?)\*\*/g, '<strong>$1<\/strong>')
+               .replace(/\*(.+?)\*/g, '<em>$1<\/em>');
+        md = md.replace(/`([^`]+)`/g, '<code>$1<\/code>');
+        md = md.replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+\"([^\"]+)\")?\)/g, (m, text, url, title) => `<a href=\"${url}\" target=\"_blank\" rel=\"noopener noreferrer\"${title?` title=\"${title}\"`:''}>${text}<\/a>`);
+        md = md.split(/\n{2,}/).map(chunk => {
+          if (/^\s*<(h\d|ul|ol|pre|blockquote)/i.test(chunk)) return chunk;
+          const lines = chunk.split(/\n/).filter(Boolean);
+          if (!lines.length) return '';
+          return '<p>' + lines.join('<br>') + '<\/p>';
+        }).join('\n');
+        md = md.replace(/@@CODE(\d+)@@/g, (m, i) => `<pre><code>${escapeHtml(codeBlocks[i] || '')}<\/code><\/pre>`);
+        return md;
+      }
+    </script>
+  </body>
+  </html>
+

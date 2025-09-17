@@ -1,0 +1,1 @@
+{"name":"eat","private":true,"version":"0.0.0","scripts":{"gen:cook":"node scripts/gen_cook_manifest.js"}}
